@@ -37,9 +37,6 @@ out/
 .vscode/
 
 ### 환경변수 / 비밀정보 ###
-.env
-.env.*
-!.env.example
 application-local.yaml
 application-local.yml
 application-secret.yaml
