@@ -25,8 +25,3 @@ htmlcov/
 .ipynb_checkpoints/
 
 # uv.lock은 의도적으로 커밋합니다 (애플리케이션이므로 버전 고정)
-
-### 환경변수 / 비밀정보 ###
-.env
-.env.*
-!.env.example
