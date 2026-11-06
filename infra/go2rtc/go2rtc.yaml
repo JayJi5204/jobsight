@@ -1,0 +1,18 @@
+streams:
+  cam:
+    - rtsp://${CAMERA_USER}:${CAMERA_PASSWORD}@${CAMERA_HOST}:554/0/onvif/profile2/media.smp
+
+api:
+  listen: ":1984"
+
+rtsp:
+  listen: ":8554"
+
+webrtc:
+  listen: ":8555"
+  
+  candidates:
+    - localhost:8555
+
+log:
+  level: info
