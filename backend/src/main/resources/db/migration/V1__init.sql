@@ -1,0 +1,6 @@
+CREATE TABLE cameras (
+    id  BIGSERIAL PRIMARY KEY,
+    stream_key VARCHAR(50) NOT NULL UNIQUE,
+    location VARCHAR(200) NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);

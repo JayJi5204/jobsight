@@ -20,4 +20,7 @@ spring:
 
 logging:
   level:
-    org.hibernate.SQL: debug
+    root: info
+    org.hibernate: warn
+    com.zaxxer.hikari: warn
+    com.jobsight: debug
