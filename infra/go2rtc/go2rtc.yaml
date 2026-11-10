@@ -1,5 +1,5 @@
 streams:
-  cam:
+  cam1:
     - rtsp://${CAMERA_USER}:${CAMERA_PASSWORD}@${CAMERA_HOST}:554/0/onvif/profile2/media.smp
 
 api:

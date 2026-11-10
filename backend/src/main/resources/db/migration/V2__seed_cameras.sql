@@ -1,0 +1,1 @@
+INSERT INTO cameras (stream_key, location) VALUES ('cam1','격납고 1');

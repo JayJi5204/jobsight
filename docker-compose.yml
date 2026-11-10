@@ -1,7 +1,7 @@
 services:
   postgres:
     image: postgres:18-alpine
-    container_name: jobsight-postgres
+    container_name: postgres
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${DB_NAME}
@@ -11,6 +11,24 @@ services:
       - "5432:5432"
     volumes:
       - postgres-data:/var/lib/postgresql
+
+  go2rtc:
+    image: alexxit/go2rtc
+    container_name: go2rtc
+    restart: unless-stopped
+    environment:
+      CAMERA_HOST: ${CAMERA_HOST}
+      CAMERA_USER: ${CAMERA_USER}
+      CAMERA_PASSWORD: ${CAMERA_PASSWORD}
+    ports:
+      - "1984:1984"
+      - "8554:8554"
+      - "8555:8555/tcp"
+      - "8555:8555/udp"
+    volumes:
+      - ./infra/go2rtc:/config:ro
+
+    
 
 volumes:
   postgres-data:
