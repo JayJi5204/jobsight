@@ -37,7 +37,7 @@ class CameraRepositoryTest {
         log.info("찾음 - id={} streamKey={} location={}",
                 entity.get().getId(), entity.get().getStreamKey(),entity.get().getLocation());
         
-        assertThat(entity.get().getLocation()).isEqualTo("격납고 1");
+        assertThat(entity.get().getLocation()).isEqualTo("신논현역");
     }
 
     @Test
