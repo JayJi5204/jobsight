@@ -54,7 +54,7 @@ export function useZones(): ZoneRow[] {
       })
 
       const ids = new Set(slots.map((s) => s.cameraId).filter((id): id is number => id !== null))
-      const open = events.filter((e) => e.status === 'open' && ids.has(e.cameraId))
+      const open = events.filter((e) => e.status === 'OPEN' && ids.has(e.cameraId))
 
       let level: Severity | null = null
       for (const e of open) {

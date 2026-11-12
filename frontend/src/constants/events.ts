@@ -1,10 +1,10 @@
 import type { EventKind, Severity } from '@/types/event'
 
 export const EVENT_KIND_LABEL: Record<EventKind, string> = {
-  fall: '추락',
-  fire: '화재',
-  intrusion: '침입',
-  loitering: '배회',
+  FALL: '추락',
+  FIRE: '화재',
+  INTRUSION: '침입',
+  LOITERING: '배회',
 }
 
 /**
@@ -15,10 +15,10 @@ export const EVENT_KIND_LABEL: Record<EventKind, string> = {
  * 배회는 지켜보다 아니면 마는 일이라 주의다.
  */
 export const SEVERITY_OF: Record<EventKind, Severity> = {
-  fall: 'danger',
-  fire: 'danger',
-  intrusion: 'warning',
-  loitering: 'caution',
+  FALL: 'danger',
+  FIRE: 'danger',
+  INTRUSION: 'warning',
+  LOITERING: 'caution',
 }
 
 export const SEVERITY_LABEL: Record<Severity, string> = {

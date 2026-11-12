@@ -66,8 +66,8 @@ export function EventsPage() {
   const [params, setParams] = useSearchParams()
   const [filter, setFilter] = useState<EventFilter>(INITIAL)
   const [picked, setPicked] = useState<Picked | null>(null)
-  const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [marked, setMarked] = useState<Set<string>>(new Set())
+  const [selectedId, setSelectedId] = useState<number | null>(null)
+  const [marked, setMarked] = useState<Set<number>>(new Set())
 
   const isList = picked !== null
   const hours = useMemo(() => hoursInRange(filter.hourFrom, filter.hourTo), [filter.hourFrom, filter.hourTo])
@@ -111,7 +111,7 @@ export function EventsPage() {
     if (!SEVERITY_ORDER.includes(wantedLevel as Severity)) return
     if (events.length === 0) return
     // 누른 단계만 본다. 미확인 전부로 재면 오늘 난 주의 한 건이 경고의 끝 날을 오늘까지 끌어당긴다
-    const open = events.filter((e) => e.status === 'open' && severityOf(e.kind) === wantedLevel)
+    const open = events.filter((e) => e.status === 'OPEN' && severityOf(e.kind) === wantedLevel)
     const days = open.map((e) => dayText(new Date(e.detectedAt))).sort()
     const today = dayText(new Date())
     setFilter({
@@ -126,7 +126,8 @@ export function EventsPage() {
     setParams({}, { replace: true })
   }, [wantedLevel, events, setParams])
 
-  const wanted = params.get('event')
+  // 주소로 오는 값은 늘 글자다. 사건 번호는 숫자라 견주기 전에 바꾼다
+  const wanted = Number(params.get('event')) || null
   useEffect(() => {
     if (wanted === null) return
     const hit = events.find((e) => e.id === wanted)
@@ -170,7 +171,7 @@ export function EventsPage() {
         if (filter.zoneId !== 'all' && seat.zoneId !== filter.zoneId) return false
         return filter.slotKey === 'all' || seat.key === filter.slotKey
       })
-      .filter((e) => filter.status === 'all' || (filter.status === 'open') === (e.status === 'open'))
+      .filter((e) => filter.status === 'all' || (filter.status === 'open') === (e.status === 'OPEN'))
       .sort((a, b) => b.detectedAt.localeCompare(a.detectedAt))
   }, [events, filter, hours, seatOf])
 
@@ -195,7 +196,7 @@ export function EventsPage() {
   const selected = isList ? (pickedEvent ?? visible[0] ?? null) : null
   const cameraOf = (id: number) => cameras.find((c) => c.id === id)
   const label = (id: number) => cameraOf(id)?.location ?? `카메라 ${id}`
-  const pendingMarked = [...marked].filter((id) => visible.some((e) => e.id === id && e.status === 'open'))
+  const pendingMarked = [...marked].filter((id) => visible.some((e) => e.id === id && e.status === 'OPEN'))
 
   if (events.length === 0) {
     return (
@@ -211,7 +212,7 @@ export function EventsPage() {
     setMarked(new Set())
   }
 
-  const toggleMark = (id: string) =>
+  const toggleMark = (id: number) =>
     setMarked((prev) => {
       const next = new Set(prev)
       if (next.has(id)) next.delete(id)
@@ -347,7 +348,7 @@ export function EventsPage() {
                 {visible.map((e) => {
                   const at = new Date(e.detectedAt)
                   const level = severityOf(e.kind)
-                  const pending = e.status === 'open'
+                  const pending = e.status === 'OPEN'
                   const active = e.id === selectedId
                   return (
                     <tr
@@ -408,7 +409,7 @@ function Pending({
   label: (id: number) => string
   onOpen: (e: DetectionEvent) => void
 }) {
-  const open = events.filter((e) => e.status === 'open').sort((a, b) => b.detectedAt.localeCompare(a.detectedAt))
+  const open = events.filter((e) => e.status === 'OPEN').sort((a, b) => b.detectedAt.localeCompare(a.detectedAt))
   return (
     <Panel
       title="경보"
