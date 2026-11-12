@@ -1,1 +1,695 @@
 @import "tailwindcss";
+
+/*
+ * jobsight 관제 콘솔.
+ *
+ * argos 와 같은 화면이다 — 색·글자·치수를 모두 그쪽에 맞춘다.
+ * 금속판과 파인 홈과 각인으로 면을 나누고, 색은 이상에만 쓴다.
+ * 등은 꺼져 있는 것이 정상이고, 들어올 때만 유리알처럼 번진다.
+ */
+@theme {
+  --color-ground: #07090a; /* 앱 바탕 — 판 사이의 어둠 */
+  --color-panel: #15181b; /* 금속판 */
+  --color-raised: #1c2126; /* 판 위로 올라온 면 */
+  --color-line: #2b3136; /* 판 테두리 */
+  /* 판 윗변 하이라이트. 빛이 위에서 온다는 것을 이 한 줄이 말한다 */
+  --color-line-strong: #454d55;
+  --color-ink: #cbd3d9; /* 각인된 글자 */
+  --color-muted: #79838b; /* 얘게 각인된 글자 */
+
+  /* 지금 보고 있는 것. 경보 세 색 밖에 두어야 상태로 읽히지 않는다 */
+  --color-accent: #4d9fff;
+  --color-accent-strong: #3b86e0;
+
+  --color-ok: #36c98a; /* 사람이 확인한 정상 (상시 점등 아님) */
+  /* 경보 세 단계. 빨강 → 주황 → 노랑 순으로 급한 정도가 읽힌다 */
+  --color-crit-ink: #ff3b2f; /* 위험 */
+  --color-warn: #ff8c1a; /* 경고 */
+  --color-caution: #ffd426; /* 주의 */
+  /* 빨간 면을 칠할 때만. 글자는 crit-ink 를 쓴다 */
+  --color-crit: #e03228;
+
+  /*
+   * 글자 크기 단계. 화면은 아래 type-* 역할 클래스만 쓰고 크기를 직접 쓰지 않는다.
+   * 벽에 걸어 두고 떨어져서 보는 화면이라 크게 잡았고, 17 → 20 → 25 로 단계를 벌려
+   * 단계가 눈에 보이게 했다. 1~2px 차이로 나뉜 역할은 구별되지 않는다.
+   */
+  --text-xs: 0.9375rem; /* 15px */
+  --text-sm: 1.0625rem; /* 17px */
+  --text-base: 1.25rem; /* 20px */
+  --text-lg: 1.5625rem; /* 25px */
+  --text-xl: 1.8125rem; /* 29px */
+  --text-2xl: 2.1875rem; /* 35px */
+  --text-3xl: 2.6875rem; /* 43px */
+
+  --font-sans: "Pretendard Variable", Pretendard, "Malgun Gothic", system-ui, sans-serif;
+
+  /*
+   * 화면 폭 단계. 기본 중단점(1280 · 1536)은 윗줄 한 줄의 짜임과 맞지 않는다.
+   * 이름과 탭 넷과 시각과 계수기가 한 줄에 서려면 1408 이 있어야 한다.
+   */
+  --breakpoint-wide: 88rem; /* 1408 — 윗줄이 한 줄로 선다 */
+  --breakpoint-ultra: 112rem; /* 1792 — 연도까지 선다 */
+
+  --animate-ping-ring: ping-ring 1.6s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+  @keyframes ping-ring {
+    from { transform: scale(1); opacity: 0.7; }
+    to { transform: scale(2.4); opacity: 0; }
+  }
+
+  /* 확인 안 된 경보 타일. 1초에 한 번 남짓 천천히 숨 쉬듯 — 번쩍임 기준(초당 3회)보다 훨씬 느리게 */
+  --animate-alarm-pulse: alarm-pulse 1.6s ease-in-out infinite;
+  @keyframes alarm-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
+  }
+}
+
+/* ── 금속의 재료 ─────────────────────────────────────────
+   색이 아니라 금속으로 면을 나눈다. 판은 윗변이 밝고 아랫변이 어둡다. */
+:root {
+  --plate: linear-gradient(180deg, #1c2126 0%, #15181b 38%, #121518 100%);
+  --plate-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.055), inset 0 -1px 0 rgba(0, 0, 0, 0.6),
+    0 3px 10px rgba(0, 0, 0, 0.55);
+  --plate-grain: rgba(255, 255, 255, 0.028);
+  --screw: radial-gradient(
+    circle at 1.7px 1.7px,
+    rgba(255, 255, 255, 0.22) 0 0.8px,
+    #3a4149 0.9px 2.4px,
+    transparent 2.5px
+  );
+  /* 판에 새긴 글자 */
+  --engrave: 0 1px 0 rgba(0, 0, 0, 0.95), 0 -1px 0 rgba(255, 255, 255, 0.035);
+  /* 판에 파인 홈 — 입력칸 · 트랙 · 읽기 전용 값이 여기에 앉는다 */
+  --sunk-bg: #0c0f11;
+  --sunk-line: #23282c;
+  --sunk: inset 0 2px 6px rgba(0, 0, 0, 0.65), inset 0 -1px 0 rgba(255, 255, 255, 0.035);
+  /*
+   * 양쪽 기둥과 윗줄 이름판의 폭. 셋이 같아야 가운데 작업면이 화면 한가운데에 서고,
+   * 이름판과 왼쪽 기둥의 오른쪽 모서리가 한 줄로 선다.
+   * 한 군데에서 정해 셋이 따로 놀지 않게 한다.
+   */
+  --pane-width: 360px;
+  /* 넓고 낮은 화면 — 기둥을 좀혀 영상 자리를 남긴다 */
+  --pane-width-tight: 240px;
+  /* 눌리는 판 — 보통 조작부는 색이 아니라 금속으로 구분한다 */
+  --btn: linear-gradient(180deg, #262d34 0%, #171b1f 100%);
+  --btn-hover: linear-gradient(180deg, #303841 0%, #1d2228 100%);
+  --btn-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.085), 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+/* ── 글자 역할 ──────────────────────────────────────────
+   각인 15 · 설명 17 · 기본 20 · 제목 25 굵게 · 큰 숫자 43 굵게. 다섯 개뿐이다.
+   목록 줄·표·버튼·탭·빈 상태는 기본, 보조 정보·시각·메타는 설명,
+   패널 머리줄·표 머리·필드 이름은 각인, 계수기와 요약 숫자만 큰 숫자다. */
+@utility type-title {
+  font-size: var(--text-lg);
+  line-height: 1.3;
+  font-weight: 600;
+}
+@utility type-body {
+  font-size: var(--text-base);
+  line-height: 1.45;
+}
+@utility type-caption {
+  font-size: var(--text-sm);
+  line-height: 1.4;
+}
+@utility type-number {
+  font-size: var(--text-3xl);
+  line-height: 1.1;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+/*
+ * 판에 새긴 작은 라벨. 패널 머리 · 표 머리 · 필드 이름처럼 읽되 누르지 않는 것에 쓴다.
+ * argos 는 여기에 대문자와 0.3em 자간을 쓰지만 한글에는 쓰지 않는다 —
+ * 한글은 대소문자가 없고, 자간을 벌리면 글자가 흩어져 읽기 어려워진다.
+ * 로마자 이름(JOBSIGHT)에만 자간을 준다.
+ */
+@utility type-eng {
+  font-size: var(--text-xs);
+  line-height: 1.3;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  text-shadow: var(--engrave);
+}
+
+/* ── 금속판 ──────────────────────────────────────────────
+   모든 화면의 칸은 이 판 위에 앉는다. */
+@utility plate {
+  position: relative;
+  border: 1px solid var(--color-line);
+  border-top-color: var(--color-line-strong);
+  border-radius: 2px;
+  background: var(--plate);
+  box-shadow: var(--plate-shadow);
+}
+
+/* 판의 결. 미세한 점무늬가 있어야 유리가 아니라 금속으로 읽힌다.
+   영상을 담은 판에는 쓰지 않는다 — 감시 화면 위에 점을 치는 꼴이 된다 */
+@utility plate-grain {
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 2px;
+    pointer-events: none;
+    background-image: radial-gradient(circle at 1px 1px, var(--plate-grain) 1px, transparent 0);
+    background-size: 3px 3px;
+  }
+}
+
+/* 네 귀의 나사. 판이 어딘가에 고정돼 있다는 사실을 보인다. 화면을 대표하는 큰 판에만 */
+@utility plate-screws {
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 8px;
+    pointer-events: none;
+    background-image: var(--screw), var(--screw), var(--screw), var(--screw);
+    background-size: 5px 5px;
+    background-position: 0 0, 100% 0, 0 100%, 100% 100%;
+    background-repeat: no-repeat;
+  }
+}
+
+/* 판에 파인 홈 */
+@utility sunk {
+  border: 1px solid var(--sunk-line);
+  border-radius: 2px;
+  background: var(--sunk-bg);
+  box-shadow: var(--sunk);
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+/* 드롭다운 목록은 브라우저가 그리므로 어두운 바탕임을 알려 줘야 글자가 묻히지 않는다 */
+select {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--color-ground);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: 1.45;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  /* 한글은 어절 단위로 줄을 바꾼다 */
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
+
+::selection {
+  background: var(--color-accent);
+  color: #fff;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+*::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 3px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* go2rtc 웹 컴포넌트는 자기 상태 표시를 얹는다. 관제 화면에서는 걷어낸다. */
+video-stream {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: #000;
+}
+video-stream video {
+  width: 100%;
+  height: 100%;
+  /* 관제 영상은 잘라내면 안 된다. 레터박스가 생겨도 화면 전체를 보여 준다. */
+  object-fit: contain;
+  display: block;
+}
+video-stream .info {
+  display: none !important;
+}
+/* 벽에 걸어 두는 화면이라 재생 컨트롤이 뜨면 안 된다 */
+video-stream video::-webkit-media-controls,
+video-stream video::-webkit-media-controls-enclosure {
+  display: none !important;
+}
+
+/*
+ * 콘솔 배치. 자리가 없으면 숨기는 것이 아니라 세워 둔 것을 눕힌다.
+ * 좁은 화면에서는 카메라 목록 → 영상 → 이벤트가 위에서 아래로 쌓이고,
+ * 넓어지면 함께 일어서서 기둥이 된다. 어느 것도 사라지지 않는다.
+ *
+ *   기본        — 셋이 세로로 쌓이고, 화면별 조작은 윗줄 아래 한 줄
+ *   1024px 이상 — 화면별 조작이 윗줄로 올라간다
+ *   1280px 이상 — 셋이 한꺼번에 기둥으로 일어선다
+ *
+ * 기둥은 셋이 함께 서거나 함께 눕는다. 목록만 기둥이고 이벤트는 아래인 어중간한 상태를
+ * 두지 않는다 — 한 화면에 가로 축과 세로 축이 섞이면 어디를 봐야 할지 알기 어렵다.
+ *
+ * 폭만으로 정하지 않는다. 눕힌 휴대폰처럼 넓지만 낮은 화면에서는 쌓인 칸들이
+ * 높이를 다 먹어 영상이 사라지므로, 폭과 상관없이 전부 기둥으로 세우고 기둥을 좁힌다.
+ */
+.workspace {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  /* 휴대폰에서는 칸들을 높이에 여기저기 워넣지 않고 줄여 섬다 — 잘리는 것보다 스크롤이 낫다 */
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.workspace-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  /* 줄어들지 않는다. 줄어들면 영상 위에 이벤트 칸이 겹쳐 그려진다 */
+  flex-shrink: 0;
+}
+.pane-tree {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  flex-shrink: 0;
+}
+/*
+ * 기둥이 섰을 때만 있는 칸(.on-wide)과 누웠을 때만 있는 칸(.on-tight).
+ *
+ * 구역 반이 그렇다. 스물다섯 줄은 눕혀 놓으면 높이의 5분의 1을 먹고도 글자가
+ * 뭉개져서, 누웠을 때는 영상 위의 구역 고르개가 그 일을 대신한다.
+ *
+ * 아래 배치 규칙과 **같은 조건**을 쓴다. 따로 적어 두면 기둥은 누웠는데 고르개는
+ * 안 나오는 폭이 생긴다.
+ */
+.on-wide { display: none !important; }
+/* 목록만 높이를 제한한다. 그래야 아래 작업면을 밀어내지 않는다.
+   누웠을 때 여기 남는 것은 녹화 폴더뿐이고(구역 반은 빠진다), 다섯 단짜리 나무라
+   세 줄만 보이면 지금 어느 단에 있는지가 안 읽힌다 */
+.pane-list { max-height: 32dvh; }
+/* 녹화처럼 기둥에 칸이 둘인 화면. 구역은 제 높이대로 서고 남는 자리는 아래가 받는다 */
+.pane-tree.has-two > .pane-list:first-of-type { flex: 0 0 auto; max-height: 50dvh; }
+.side-counters {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  flex-shrink: 0;
+}
+/*
+ * 사건 분포 격자의 칸 색. 0 은 기록이 없는 칸이고 위로 갈수록 사건이 많다.
+ *
+ * 아래 세 단은 금속 명도로만 오른다. jobsight 는 색을 상태에만 쓰므로,
+ * 격자 전체를 색으로 덮으면 붉은 칸의 빨강이 윗줄 계수기의 빨강과 다른 뜻이 된다.
+ * 위 세 단에서만 주의 → 경고 → 위험 색을 쓴다.
+ */
+.heat-0 { background-color: var(--sunk-bg); border-color: #13161a; }
+.heat-1 { background-color: #1a1e23; }
+.heat-2 { background-color: #2a3037; }
+.heat-3 { background-color: rgba(255, 212, 38, 0.3); border-color: rgba(255, 212, 38, 0.42); }
+.heat-4 { background-color: rgba(255, 140, 26, 0.46); border-color: rgba(255, 140, 26, 0.55); }
+.heat-5 { background-color: rgba(255, 59, 47, 0.62); border-color: rgba(255, 59, 47, 0.7); }
+
+/* 좁을 때는 숫자와 이름을 한 줄에 넑힌다. 쌓으면 영상 자리를 가져간다 */
+/* 누웠을 때는 한 칸이 좁다 — 이름을 위에 얹고 숫자를 아래에 둔다 */
+.side-counters > * {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+.side-panel {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  width: 100%;
+  max-height: 34dvh;
+}
+
+/*
+ * 영상처럼 제 비율이 있는 작업면은, 쌓였을 때 폭이 허락하는 만큼만 높이를 갖는다.
+ * 남는 자리는 빈 채로 두지 않고 아래 칸이 올라와 가져간다.
+ */
+/* 쌓였을 때 작업면은 제 내용만큼만 높이를 갖는다. 0 으로 두면 판이 통째로 사라진다 */
+.workspace-inner > main { flex: 0 0 auto; }
+.workspace-inner.is-tight > .side-panel {
+  flex: 1 1 auto;
+  max-height: none;
+  /* 머리줄만 남기고 글자를 잘라 버리지 않을 만큼은 남긴다. 다 합쳐 자리가 모자라면
+     칸을 더 줄이지 않고 작업 영역을 세로로 스크롤한다 */
+  min-height: 8rem;
+}
+.video-stage {
+  flex: 0 1 auto;
+  aspect-ratio: 16 / 9;
+  max-height: 45dvh;
+  min-height: 8rem;
+}
+
+/*
+ * 윗줄. 기본은 두 줄 — 위가 탭, 아래가 계수기다. 계수기는 끝까지 남는다.
+ * 자리가 되면 한 줄로 서고, 더 넓어지면 이름판까지 선다.
+ */
+.hdr-rows { display: flex; }
+.hdr-row { display: none; }
+.hdr-brand { display: none; }
+
+@media (min-width: 88rem), (min-width: 768px) and (max-height: 560px) {
+  .hdr-rows { display: none; }
+  .hdr-row { display: flex; }
+}
+
+@media (min-width: 88rem) {
+  .hdr-brand { display: flex; }
+}
+
+@media (min-width: 1280px), (min-width: 768px) and (max-height: 560px) {
+  .workspace { flex-direction: row; overflow: visible; }
+  .workspace-inner { flex-direction: row; flex-shrink: 1; }
+  .pane-tree {
+    width: var(--pane-width);
+    min-height: 0;
+  }
+  .pane-list { flex: 1 1 auto; min-height: 0; max-height: none; }
+  .on-tight { display: none !important; }
+  .on-wide { display: flex !important; }
+  .side-counters { grid-template-columns: minmax(0, 1fr); }
+  .side-counters > * {
+    flex-direction: row;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+  .side-panel {
+    width: var(--pane-width);
+    max-height: none;
+  }
+  .workspace-inner > main { flex: 1 1 auto; }
+  .workspace-inner.is-tight > .side-panel { flex: 0 0 auto; min-height: 0; }
+  .video-stage { flex: 1 1 auto; aspect-ratio: auto; max-height: none; }
+  .map-stage { min-height: 0; }
+}
+
+/*
+ * 녹화만 쓰는 배치. 영상이 큰 화면이라 다른 화면보다 한 단 먼저 기둥을 세운다.
+ *
+ * 1024~1279 에서는 폴더와 재생기 **둘만** 선다. 셋을 세우면 1024 에서 가운데가
+ * 300px 로 남아 영상이 아무것도 아니게 된다 — 그래서 사건 칸은 1280 부터다.
+ */
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .workspace.cols-early { flex-direction: row; overflow: visible; }
+  .workspace.cols-early .workspace-inner { flex-direction: row; flex-shrink: 1; }
+  .workspace.cols-early .pane-tree { width: 300px; min-height: 0; }
+  .workspace.cols-early .pane-list { flex: 1 1 auto; min-height: 0; max-height: none; }
+  .workspace.cols-early .workspace-inner > main { flex: 1 1 auto; }
+}
+
+/*
+ * 1024 미만에서는 폴더와 재생기가 **자리를 번갈아 쓴다.**
+ *
+ * 둘을 위아래로 쌓으면 영상이 964×152 까지 눌린다. 그렇다고 폴더를 그냥 감추면
+ * 고를 길이 없어 빈 재생기만 남는다 — 그래서 감추는 것이 아니라 번갈아 쓴다.
+ * 고르기 전에는 폴더가, 하나 고른 뒤에는 재생기가 화면을 다 쓴다.
+ */
+@media (max-width: 1023px) {
+  .workspace.pick-one.is-picked > .pane-tree { display: none; }
+  .workspace.pick-one:not(.is-picked) > .workspace-inner { display: none; }
+  .workspace.pick-one { height: 100%; }
+  /* 자리를 넘겨받은 쪽이 높이를 다 쓴다. 이어 주지 않으면 영상이 제 내용만큼만 서서
+     쌓여 있을 때와 똑같이 152px 로 눌린다 */
+  .workspace.pick-one:not(.is-picked) > .pane-tree { flex: 1 1 auto; min-height: 0; }
+  .workspace.pick-one .pane-list { max-height: none; flex: 1 1 auto; }
+  .workspace.pick-one.is-picked > .workspace-inner { flex: 1 1 auto; min-height: 0; }
+  .workspace.pick-one.is-picked > .workspace-inner > main { flex: 1 1 auto; min-height: 0; }
+}
+/*
+ * 사건 상세도 같은 규칙이다 — 기둥이 눕는 폭에서는 **표를 덮고 상세가 작업면을 다 쓴다.**
+ *
+ * 34dvh 짜리 칸에 밀어 넣었더니 1087px 내용이 261px 상자에 들어가, 영상만 보이고
+ * 날짜·위치·판정은 그 안에서 굴려야 나왔다. 상세는 굴려 읽는 것이 아니라 한눈에
+ * 읽는 것이다. 돌아가는 길은 상세 머리줄의 「목록으로」 가 맡는다.
+ */
+/*
+ * 오른쪽 칸이 기둥이 설 때만 서는 화면(사건)은, 누웠을 때 작업면이 그 자리를 쓴다.
+ * 작업면은 쌓였을 때 제 내용만큼만 높이를 갖는 것이 기본인데, 가져갈 칸이 없으면
+ * 그만큼이 빈 바닥으로 남는다.
+ */
+@media (max-width: 1279px) {
+  .workspace.rail-wide > .workspace-inner { flex: 1 1 auto; min-height: 0; }
+  .workspace.rail-wide .workspace-inner > main { flex: 1 1 auto; min-height: 0; }
+}
+
+@media (max-width: 1279px) {
+  /* 짚지 않았으면 상세 칸은 아예 없다. 맨 윗줄이 저절로 열린 것을 34dvh 칸에
+     세워 두면, 목록을 보러 들어왔는데 표가 반 토막이 난다 */
+  .workspace:not(.detail-open) .side-panel.is-detail { display: none; }
+  .workspace.detail-open { height: 100%; }
+  .workspace.detail-open > .workspace-inner { flex: 1 1 auto; min-height: 0; }
+  .workspace.detail-open .workspace-inner > main { display: none; }
+  .workspace.detail-open .side-panel.is-detail {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none;
+  }
+}
+
+/* 목록으로 돌아가는 길. 폴더가 자리를 내준 폭에만 선다 */
+.on-narrow { display: none; }
+@media (max-width: 1023px) { .on-narrow { display: inline-flex; } }
+
+/* 넓고 낮아서 기둥을 세우긴 했지만 자리가 빠듯한 구간 — 기둥을 좁혀 영상 자리를 남긴다 */
+@media (min-width: 768px) and (max-width: 1279px) and (max-height: 560px) {
+  .pane-tree,
+  .side-panel { width: var(--pane-width-tight); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ── 표시등 ─────────────────────────────────────────────
+   선교 콘솔의 유리알. 꺼져 있는 것이 정상이고 이상일 때만 들어온다.
+   안쪽 테두리와 바깥 번짐을 함께 둬야 칠한 점이 아니라 유리알로 보인다. */
+.lamp-off {
+  background: #0d1012;
+  box-shadow: inset 0 0 0 1px #000, inset 0 1.5px 2px rgba(255, 255, 255, 0.09);
+}
+/* 등 자리가 비었다 — 테두리만 남기고 속을 채우지 않는다 */
+.lamp-empty { background: transparent; box-shadow: inset 0 0 0 1px var(--color-line); }
+.lamp-ok {
+  background: var(--color-ok);
+  box-shadow: inset 0 0 0 1px rgba(10, 80, 55, 0.7), 0 0 12px 1px rgba(54, 201, 138, 0.6);
+}
+.lamp-danger {
+  background: var(--color-crit-ink);
+  box-shadow: inset 0 0 0 1px rgba(110, 15, 10, 0.7), 0 0 15px 2px rgba(255, 59, 47, 0.8);
+}
+.lamp-warning {
+  background: var(--color-warn);
+  box-shadow: inset 0 0 0 1px rgba(120, 60, 0, 0.7), 0 0 14px 2px rgba(255, 140, 26, 0.75);
+}
+.lamp-caution {
+  background: var(--color-caution);
+  box-shadow: inset 0 0 0 1px rgba(120, 95, 0, 0.7), 0 0 12px 1px rgba(255, 212, 38, 0.65);
+}
+
+/*
+ * 지도 위의 구역 점. 왼쪽 기둥의 등과 같은 규칙으로 켜진다.
+ * 다만 속에 숫자가 들어가야 해서, 유리알을 채우는 대신 테두리와 번짐만 쓴다 —
+ * 알을 채우면 그 위의 숫자가 읽히지 않는다.
+ */
+.zone-pin {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 9999px;
+  background: rgba(8, 11, 13, 0.82);
+  box-shadow: inset 0 0 0 1.5px var(--color-line-strong);
+  color: var(--color-muted);
+}
+/* 카메라가 아직 없는 구역. 자리만 잡아 두고 조용하다 */
+.zone-pin-none { box-shadow: inset 0 0 0 1px var(--color-line); color: #394046; }
+/* 카메라는 있는데 지금 아무도 그 영상을 보고 있지 않다 */
+.zone-pin-idle { box-shadow: inset 0 0 0 1.5px var(--color-line-strong); color: var(--color-muted); }
+.zone-pin-ok {
+  box-shadow: inset 0 0 0 1.5px var(--color-ok), 0 0 12px 1px rgba(54, 201, 138, 0.45);
+  color: var(--color-ok);
+}
+.zone-pin-danger {
+  box-shadow: inset 0 0 0 2px var(--color-crit-ink), 0 0 16px 2px rgba(255, 59, 47, 0.6);
+  color: var(--color-crit-ink);
+}
+.zone-pin-warning {
+  box-shadow: inset 0 0 0 2px var(--color-warn), 0 0 15px 2px rgba(255, 140, 26, 0.55);
+  color: var(--color-warn);
+}
+.zone-pin-caution {
+  box-shadow: inset 0 0 0 2px var(--color-caution), 0 0 13px 1px rgba(255, 212, 38, 0.5);
+  color: var(--color-caution);
+}
+
+/*
+ * 지도는 영상과 달리 제 비율이 없다. 그래서 눕혔을 때 높이를 적어 주지 않으면
+ * flex 가 0 으로 접어 버려, 머리줄만 남고 지도가 통째로 사라진다.
+ */
+.map-stage { min-height: 55dvh; }
+
+/* ── 지도 ──────────────────────────────────────────
+   타일 자체는 MapLibre 가 어둡게 눌러 둔다(MapPage 의 raster paint).
+   여기서는 지도가 끼워 넣는 DOM — 조작 단추와 출처 표시 — 만 판에 맞춘다. */
+.map-stage { position: relative; }
+.map-stage .maplibregl-ctrl-attrib {
+  background: rgba(8, 11, 13, 0.72);
+  color: var(--color-muted);
+  font-size: 11px;
+}
+.map-stage .maplibregl-ctrl-attrib a { color: var(--color-muted); }
+.map-stage .maplibregl-ctrl-group {
+  background: rgba(8, 11, 13, 0.85);
+  box-shadow: inset 0 0 0 1px var(--color-line-strong);
+}
+.map-stage .maplibregl-ctrl-group button + button { border-top-color: var(--color-line); }
+/* 단추 그림은 검정 원본이라 어두운 판 위에서 안 보인다 */
+.map-stage .maplibregl-ctrl-icon { filter: invert(1); }
+
+/* 구역 점. 누르는 자리는 44px, 보이는 알은 34px */
+.zone-marker {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+/* 이름은 알 아래에 걸린다. 알 안에 넣으면 숫자와 자리를 다퉈 둘 다 안 읽힌다 */
+.zone-tag {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.78);
+  color: var(--color-muted);
+  font-size: 11px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+/* 휴대폰 폭에서는 이름표를 거둔다. 355px 에 스물다섯 개가 서면 이름끼리 겹쳐
+   구 이름도 점의 숫자도 둘 다 안 읽힌다. 당겨 들어가면 지도 제 글자가 말해 준다 */
+@media (max-width: 599px) {
+  .zone-tag { display: none; }
+}
+.zone-tag-danger { color: var(--color-crit-ink); }
+.zone-tag-warning { color: var(--color-warn); }
+.zone-tag-caution { color: var(--color-caution); }
+
+
+/* 큰 계수기의 숫자. 0 이면 판에 각인된 채 꺼져 있다 */
+.count-off { color: #343b41; text-shadow: 0 1px 0 #000; }
+.count-danger { color: var(--color-crit-ink); text-shadow: 0 0 26px rgba(255, 59, 47, 0.5); }
+.count-warning { color: var(--color-warn); text-shadow: 0 0 26px rgba(255, 140, 26, 0.5); }
+.count-caution { color: var(--color-caution); text-shadow: 0 0 22px rgba(255, 212, 38, 0.5); }
+
+/*
+ * 카메라 테두리 경보. 등처럼 켜졌다 꺼진다.
+ *
+ * 테두리는 늘 켜 두고 바깥 고리만 깜빡이게 하면, 둘이 같은 색으로 맞붙어 있어
+ * 굵기가 조금 오가는 것으로만 보였다. 그래서 테두리 색까지 함께 죽인다.
+ *
+ * 단계 셋을 모두 둔다 — 둘만 두면 주의가 경고 색으로 깜빡여 목록·표의 글자색과
+ * 어긋난다. 단계가 높을수록 빠르게 깜빡인다. 멀리서 색이 섞여 보여도 박자는 섞이지 않는다.
+ */
+@keyframes cameraBorderBlink {
+  0%, 45% {
+    border-color: var(--alert-color);
+    box-shadow:
+      0 0 0 1px var(--alert-color),
+      0 0 22px 2px var(--alert-glow),
+      inset 0 0 34px -10px var(--alert-glow);
+  }
+  55%, 100% {
+    border-color: var(--alert-dim);
+    box-shadow: none;
+  }
+}
+.camera-alert-danger,
+.camera-alert-warning,
+.camera-alert-caution {
+  border-color: var(--alert-color);
+  animation: cameraBorderBlink var(--alert-beat) ease-in-out infinite;
+}
+.camera-alert-danger {
+  --alert-color: var(--color-crit-ink);
+  --alert-glow: rgba(255, 59, 47, 0.55);
+  --alert-dim: rgba(255, 59, 47, 0.18);
+  --alert-beat: 0.8s;
+}
+.camera-alert-warning {
+  --alert-color: var(--color-warn);
+  --alert-glow: rgba(255, 140, 26, 0.5);
+  --alert-dim: rgba(255, 140, 26, 0.18);
+  --alert-beat: 1.1s;
+}
+.camera-alert-caution {
+  --alert-color: var(--color-caution);
+  --alert-glow: rgba(255, 212, 38, 0.45);
+  --alert-dim: rgba(255, 212, 38, 0.16);
+  --alert-beat: 1.5s;
+}
+/* 깜빡임이 괴로운 사람에게는 켜 둔 채로 둔다. 경보 자체를 숨길 수는 없다 */
+@media (prefers-reduced-motion: reduce) {
+  .camera-alert-danger,
+  .camera-alert-warning,
+  .camera-alert-caution {
+    animation: none;
+    box-shadow:
+      0 0 0 1px var(--alert-color),
+      0 0 22px 2px var(--alert-glow);
+  }
+}
+
+/*
+ * 사건 상세 칸은 경보 칸보다 넓다 — 여기에는 영상이 들어간다.
+ * 원본이 1920×1080 이라 세로를 키우려면 가로를 늘리는 수밖에 없고, 좌우를 잘라 채우면
+ * 화면 가장자리의 연기·불씨가 잘려 나가 판단을 그르친다.
+ *
+ * 다만 폭은 화면을 따라 접는다. 좁은 쪽일수록 왼쪽 표에 자리를 내준다 —
+ * 어느 사건인지 고르지 못하면 큰 영상도 쓸모가 없다.
+ */
+@media (min-width: 1280px) {
+  .side-panel.is-detail { width: 400px; }
+}
+@media (min-width: 88rem) {
+  .side-panel.is-detail { width: 480px; }
+}
+@media (min-width: 96rem) {
+  .side-panel.is-detail { width: 560px; }
+}
+@media (min-width: 112rem) {
+  .side-panel.is-detail { width: 720px; }
+}
