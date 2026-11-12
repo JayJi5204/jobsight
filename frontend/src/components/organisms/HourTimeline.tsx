@@ -66,7 +66,7 @@ export function HourTimeline({ hourStart, segments, events, windowStart, windowM
               onClick={() => onSeek(Date.parse(e.detectedAt) - 10_000)}
               title={`${eventLabel(e.kind)} ${fmtTime(new Date(e.detectedAt))}`}
               className={`absolute top-0.5 bottom-0.5 w-[3px] rounded-[1px] ${SEVERITY_LAMP[severityOf(e.kind)]} ${
-                e.status === 'open' ? '' : 'opacity-55'
+                e.status === 'OPEN' ? '' : 'opacity-55'
               }`}
               style={{ left: pct(at) }}
             />

@@ -25,7 +25,7 @@ export function EventRail({ className = '' }: { className?: string }) {
   const events = useEvents()
   const { cameras } = useCameras()
 
-  const pending = events.filter((e) => e.status === 'open').length
+  const pending = events.filter((e) => e.status === 'OPEN').length
   const label = (id: number) => cameras.find((c) => c.id === id)?.location ?? `카메라 ${id}`
 
   const shown = [...events].sort((a, b) => b.detectedAt.localeCompare(a.detectedAt)).slice(0, 30)

@@ -23,7 +23,7 @@ interface Props {
  */
 export function EventCard({ event, cameraLabel, onOpen }: Props) {
   const level = severityOf(event.kind)
-  const pending = event.status === 'open'
+  const pending = event.status === 'OPEN'
 
   return (
     <button

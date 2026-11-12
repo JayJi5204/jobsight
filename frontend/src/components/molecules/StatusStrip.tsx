@@ -18,7 +18,7 @@ export function StatusStrip({ full = false }: { full?: boolean }) {
   const navigate = useNavigate()
   const events = useEvents()
 
-  const pending = events.filter((e) => e.status === 'open')
+  const pending = events.filter((e) => e.status === 'OPEN')
 
   return (
     <div className={`flex items-stretch self-stretch ${full ? 'min-w-0 flex-1' : ''}`}>

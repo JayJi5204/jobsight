@@ -44,9 +44,9 @@ export function EventDetail({ event, cameraLabel, streamKey, zone, onBack, onAck
   const start = Date.parse(event.detectedAt)
   const end = event.endedAt ? Date.parse(event.endedAt) : start
   const spanMs = Math.max(1000, end - start)
-  const pending = event.status === 'open'
+  const pending = event.status === 'OPEN'
 
-  const verdict = event.confidence !== undefined ? `${eventLabel(event.kind)} ${event.confidence.toFixed(2)}` : null
+  const verdict = event.confidence != null ? `${eventLabel(event.kind)} ${event.confidence.toFixed(2)}` : null
 
   return (
     <>

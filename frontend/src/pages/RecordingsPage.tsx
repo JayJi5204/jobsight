@@ -195,7 +195,7 @@ export function RecordingsPage() {
             {dayEvents.length === 0 && <li className="px-5 py-4 type-caption text-muted">이 카메라에 이 날 사건이 없습니다.</li>}
             {dayEvents.map((e) => {
               const level = severityOf(e.kind)
-              const pending = e.status === 'open'
+              const pending = e.status === 'OPEN'
               return (
                 <li key={e.id}>
                   {/* 경보 칸과 같은 꼴이다 — 등과 바탕이 단계를, 글자는 손을 기다리는지를 말한다 */}
