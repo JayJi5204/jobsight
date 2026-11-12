@@ -1,1 +1,1 @@
-INSERT INTO cameras (stream_key, location) VALUES ('cam1','격납고 1');
+INSERT INTO cameras (stream_key, location, zone) VALUES ('CAM-001','강남역','GANGNAM');

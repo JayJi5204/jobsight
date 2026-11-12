@@ -13,6 +13,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 
 import java.util.Optional;
 
+import static com.jobsight.backend.domain.camera.enumType.Zone.GANGNAM;
 import static org.assertj.core.api.AssertionsForClassTypes.*;
 
 @Slf4j
@@ -27,9 +28,9 @@ class CameraRepositoryTest {
 
     @Test
     void streamKey로_카메라를_찾는다(){
-        repository.save(new CameraEntity("cam", "격납고 1"));
+        repository.save(new CameraEntity("CAM-000", "신논현역",GANGNAM));
 
-        Optional<CameraEntity> entity = repository.findByStreamKey("cam");
+        Optional<CameraEntity> entity = repository.findByStreamKey("CAM-000");
 
         assertThat(entity).isPresent();
         
@@ -41,7 +42,7 @@ class CameraRepositoryTest {
 
     @Test
     void  저장하면_createdAt이_자동으로_채워진다(){
-        CameraEntity entity=repository.save(new CameraEntity("cam","격납고 1"));
+        CameraEntity entity=repository.save(new CameraEntity("CAM-000","신논현역",GANGNAM));
 
         log.info("createdAt = {}", entity.getCreatedAt());
 
@@ -50,9 +51,9 @@ class CameraRepositoryTest {
 
     @Test
     void 같은_streamKey는_두_번_저장할_수_없다(){
-        repository.save(new CameraEntity("cam","격납고 1"));
+        repository.save(new CameraEntity("CAM-000","신논현역",GANGNAM));
 
-        Throwable thrown= catchThrowable(() -> repository.saveAndFlush(new CameraEntity("cam","격납고 2")));
+        Throwable thrown= catchThrowable(() -> repository.saveAndFlush(new CameraEntity("CAM-000","신논현역",GANGNAM)));
 
         log.info("거부됨 = {}",thrown.getClass().getSimpleName());
         log.info("원인 = {}",thrown.getCause().getMessage());
