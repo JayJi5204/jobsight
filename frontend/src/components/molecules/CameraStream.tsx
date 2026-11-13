@@ -72,6 +72,7 @@ export function CameraStream({ streamKey, onStateChange }: Props) {
     }, 1000)
 
     return () => {
+      // oxlint-disable-next-line react/immutability -- 렌더가 아니라 정리 함수에서 끄는 깃발이다
       cancelled = true
       window.clearInterval(watchdog)
       el?.remove()

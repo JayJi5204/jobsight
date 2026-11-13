@@ -34,7 +34,7 @@ pipeline{
                     --volumes-from jobsight-jenkins \
                     -e npm_config_cache="$WORKSPACE/.npm" \
                     -w "$WORKSPACE/frontend" \
-                    node:24-alpine sh -c "npm ci && npm run build"
+                    node:24-alpine sh -c "npm ci && npm run lint && npm run build"
                 '''
             }
         }
