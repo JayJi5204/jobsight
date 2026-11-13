@@ -14,6 +14,7 @@ import { EventDistribution } from '@/components/organisms/EventDistribution'
 import { WorkspaceTemplate } from '@/components/templates/WorkspaceTemplate'
 import { ROUTES } from '@/constants/routes'
 import { zoneOfCode } from '@/constants/zones'
+import { useClock } from '@/hooks/useClock'
 import { useCameras } from '@/hooks/useCameras'
 import { useZones } from '@/hooks/useZones'
 import { ackEvent, useEvents } from '@/store/events'
@@ -68,6 +69,8 @@ export function EventsPage() {
   const [picked, setPicked] = useState<Picked | null>(null)
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [marked, setMarked] = useState<Set<number>>(new Set())
+  // 분포 격자의 '지금' 칸. 렌더에서 new Date() 를 부르면 그릴 때마다 값이 달라진다
+  const now = useClock(60_000)
 
   const isList = picked !== null
   const hours = useMemo(() => hoursInRange(filter.hourFrom, filter.hourTo), [filter.hourFrom, filter.hourTo])
@@ -312,7 +315,7 @@ export function EventsPage() {
             events={inRange}
             cameras={cameras}
             hours={hours}
-            nowHour={new Date().getHours()}
+            nowHour={now.getHours()}
             onPick={(id, hour) => {
               setPicked({ cameraId: id, hour })
               setSelectedId(null)

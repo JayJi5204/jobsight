@@ -10,7 +10,8 @@
   "rules": {
     "react/rules-of-hooks": "error",
     "react/exhaustive-deps": "warn",
-    "react/only-export-components": "warn"
+    "react/only-export-components": "warn",
+    "react/set-state-in-effect": "off"
   },
   "ignorePatterns": ["dist"]
 }

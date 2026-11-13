@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { Icon } from '@/components/atoms/Icon'
 import { Panel } from '@/components/atoms/Panel'
 import { fetchRecordingSegments } from '@/api/recordings'
+import { useClock } from '@/hooks/useClock'
 import { useZones, type SlotView } from '@/hooks/useZones'
 import type { RecordingSegment } from '@/types/recording'
 import { hoursOf } from '@/utils/recordingTree'
@@ -50,7 +51,9 @@ const dayLabel = (d: Date) =>
  */
 export function RecordingTree({ cameraId, playhead, onPick, className = '' }: Props) {
   const rows = useZones()
-  const today = startOfDay(new Date()).getTime()
+  // 렌더에서 시계를 읽으면 같은 값으로 두 번 그려도 결과가 달라진다. 날이 바뀌는 것만
+  // 알면 되므로 1분마다 본다
+  const today = startOfDay(useClock(60_000)).getTime()
   const days = Array.from({ length: DAYS }, (_, i) => today - i * DAY_MS)
 
   const openDay = startOfDay(new Date(playhead)).getTime()

@@ -83,9 +83,13 @@ export function MapPage() {
   const map = useRef<maplibregl.Map | null>(null)
   const pins = useRef(new Map<number, HTMLButtonElement>())
   const goRef = useRef(navigate)
-  goRef.current = navigate
   const [ready, setReady] = useState(false)
   const [tilesFailed, setTilesFailed] = useState(false)
+
+  // 지도는 한 번만 세우므로 그 안에서 잡은 navigate 는 늙는다. 늘 최신 것을 쥐여 준다
+  useEffect(() => {
+    goRef.current = navigate
+  }, [navigate])
 
   // 지도는 한 번만 세운다. 상태가 바뀔 때마다 다시 만들면 보던 자리가 튄다
   useEffect(() => {
