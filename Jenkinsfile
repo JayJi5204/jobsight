@@ -6,6 +6,10 @@ pipeline{
         disableConcurrentBuilds()
     }
 
+    triggers{
+        pollSCM('H/5 * * * *')
+    }
+
     stages{
         stage('백엔드 테스트'){
             steps{
