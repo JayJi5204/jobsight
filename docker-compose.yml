@@ -28,6 +28,26 @@ services:
     volumes:
       - ./infra/go2rtc:/config:ro
 
+  backend:
+    build: ./backend
+    container_name: backend
+    restart: unless-stopped
+    environment:
+      DB_HOST: postgres
+      DB_NAME: ${DB_NAME}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+    depends_on:
+    - postgres
+
+  frontend:
+    build: ./frontend
+    container_name: frontend
+    restart: unless-stopped
+    ports:
+    - "80:80"
+    depends_on:
+    - backend
     
 
 volumes:
