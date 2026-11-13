@@ -47,7 +47,11 @@ public class EventServiceImpl implements EventService {
     public EventResponse create(EventCreateRequest request) {
 
         CameraEntity cameraEntity = cameraRepository.findByStreamKey(request.getStreamKey())
-                .orElseThrow(() -> new BusinessException(ErrorCode.CAMERA_NOT_FOUND, request.getStreamKey()));
+                .orElseThrow(() -> {
+                    log.warn("모르는 카메라로 사건이 들어왔습니다 - streamKey={}", request.getStreamKey());
+                    return new BusinessException(ErrorCode.CAMERA_NOT_FOUND, request.getStreamKey());
+                });
+
 
         EventEntity eventEntity = new EventEntity(
                 cameraEntity.getId(),
