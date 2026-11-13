@@ -8,10 +8,12 @@ services:
      - "50000:50000"
     group_add:
       - "112"
+    environment:
+      DEPLOY_DIR: ${DEPLOY_DIR}
     volumes:
       - jenkins_home:/var/jenkins_home
       - /var/run/docker.sock:/var/run/docker.sock
-      - ${DEPLOY_DIR}:/deploy
+      - ${DEPLOY_DIR}:${DEPLOY_DIR}
 
 volumes:
   jenkins_home:
