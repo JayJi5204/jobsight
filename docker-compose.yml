@@ -20,6 +20,7 @@ services:
       CAMERA_HOST: ${CAMERA_HOST}
       CAMERA_USER: ${CAMERA_USER}
       CAMERA_PASSWORD: ${CAMERA_PASSWORD}
+      WEBRTC_HOST: ${WEBRTC_HOST}
     ports:
       - "1984:1984"
       - "8554:8554"
@@ -45,7 +46,7 @@ services:
     container_name: frontend
     restart: unless-stopped
     ports:
-    - "80:80"
+    - "8090:80"
     depends_on:
     - backend
     

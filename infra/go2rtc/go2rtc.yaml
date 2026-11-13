@@ -12,7 +12,7 @@ webrtc:
   listen: ":8555"
   
   candidates:
-    - localhost:8555
+    - ${WEBRTC_HOST}:8555
 
 log:
   level: info
