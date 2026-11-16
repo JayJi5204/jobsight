@@ -1,17 +1,16 @@
 [project]
-name = "ai"
+name = "jobsight"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-authors = [
-    { name = "JayJi5204", email = "jayji5204@naver.com" }
-]
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "pymupdf>=2.1",
+]
 
 [project.scripts]
-ai = "ai:main"
+jobsight = "jobsight:main"
 
 [build-system]
-requires = ["uv_build>=0.12.21,<0.13.0"]
+requires = ["uv_build>=0.13.8,<0.14.0"]
 build-backend = "uv_build"

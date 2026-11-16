@@ -9,3 +9,4 @@
 # 문서는 README 만 올린다. 그 밖의 md 는 작업 메모라 저장소에 남기지 않는다
 *.md
 !README.md
+manual
