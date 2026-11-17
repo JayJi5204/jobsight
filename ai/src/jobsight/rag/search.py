@@ -76,7 +76,7 @@ def search(question, kind=None, top_k=TOP_K):
 
     # 1 - 거리 = 유사도. 사람이 읽기 좋은 쪽으로 되돌린다.
     sql = """
-        SELECT id, kind, chapter, section, text,
+        SELECT id, kind, page, chapter, section, text,
                1 - (embedding <=> %s::vector)
         FROM chunks
     """
@@ -100,10 +100,11 @@ def search(question, kind=None, top_k=TOP_K):
             {
                 "id": row[0],
                 "kind": row[1],
-                "chapter": row[2],
-                "section": row[3],
-                "text": row[4],
-                "similarity": row[5],
+                "page": row[2],
+                "chapter": row[3],
+                "section": row[4],
+                "text": row[5],
+                "similarity": row[6],
             }
         )
 
