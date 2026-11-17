@@ -5,11 +5,13 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "fastapi>=0.163.1",
     "psycopg[binary]>=3.3.9",
     "pymupdf>=2.1",
     "python-dotenv>=1.2.4",
     "sentence-transformers>=6.3.0",
     "torch>=2.15.0",
+    "uvicorn>=0.54.0",
 ]
 
 [project.scripts]
