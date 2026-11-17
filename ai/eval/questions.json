@@ -1,0 +1,55 @@
+{
+  "_설명": "검색 품질 평가셋. q=질문, kind=사건 종류, answers=정답으로 인정할 조각 id 목록(하나라도 상위에 들면 성공). negative=매뉴얼에 없어서 '모름'으로 떨어져야 하는 질문.",
+  "positive": [
+    { "q": "추락한 사람을 발견하면 어디에 신고하나요", "kind": "fall", "answers": ["fall-08", "fall-03"] },
+    { "q": "난간 위에 사람이 올라가 있어요", "kind": "fall", "answers": ["fall-06", "fall-18"] },
+    { "q": "추락 위험 등급은 어떻게 정하나요", "kind": "fall", "answers": ["fall-14", "fall-15"] },
+    { "q": "공사장에서 사람이 떨어졌어요", "kind": "fall", "answers": ["fall-19"] },
+    { "q": "맨홀 뚜껑이 열려 있어요", "kind": "fall", "answers": ["fall-20"] },
+    { "q": "간판이 떨어질 것 같은데 어디에 알리죠", "kind": "fall", "answers": ["fall-21"] },
+    { "q": "119에 뭐라고 말해야 하나요", "kind": "fall", "answers": ["fall-25", "fall-26"] },
+    { "q": "추락 영상은 언제부터 보존하나요", "kind": "fall", "answers": ["fall-11", "fall-02"] },
+    { "q": "그림자였는데 사람인 줄 알았어요", "kind": "fall", "answers": ["fall-24"] },
+    { "q": "구조대가 올 때까지 뭘 봐야 하나요", "kind": "fall", "answers": ["fall-10"] },
+
+    { "q": "화재 대응 1단계가 뭔가요", "kind": "fire", "answers": ["fire-05", "fire-04"] },
+    { "q": "화재 신고는 어디에 하나요", "kind": "fire", "answers": ["fire-08", "fire-03"] },
+    { "q": "연기가 보이는데 불인지 아닌지 모르겠어요", "kind": "fire", "answers": ["fire-23", "fire-06"] },
+    { "q": "화재 위험 등급 기준이 뭔가요", "kind": "fire", "answers": ["fire-13", "fire-14"] },
+    { "q": "화재 때 누구에게 알려야 하나요", "kind": "fire", "answers": ["fire-09"] },
+    { "q": "소방이 올 때까지 무엇을 보나요", "kind": "fire", "answers": ["fire-10"] },
+    { "q": "화재 신고 문구를 알려주세요", "kind": "fire", "answers": ["fire-24", "fire-25"] },
+    { "q": "화재 영상 보존은 어떻게 하나요", "kind": "fire", "answers": ["fire-11"] },
+    { "q": "불이 꺼진 뒤에 무엇을 기록하나요", "kind": "fire", "answers": ["fire-12"] },
+    { "q": "화재 대응 절차가 몇 단계인가요", "kind": "fire", "answers": ["fire-04"] },
+
+    { "q": "들어오면 안 되는 구역에 사람이 들어갔어요", "kind": "intrusion", "answers": ["intrusion-06", "intrusion-05"] },
+    { "q": "침입 신고는 112인가요 119인가요", "kind": "intrusion", "answers": ["intrusion-08", "intrusion-03"] },
+    { "q": "침입 등급은 어떻게 나누나요", "kind": "intrusion", "answers": ["intrusion-13", "intrusion-14"] },
+    { "q": "순찰 직원인지 침입자인지 구분이 안 돼요", "kind": "intrusion", "answers": ["intrusion-23"] },
+    { "q": "침입 상황에서 누구에게 전파하나요", "kind": "intrusion", "answers": ["intrusion-09"] },
+    { "q": "경찰이 올 때까지 뭘 지켜보나요", "kind": "intrusion", "answers": ["intrusion-10"] },
+    { "q": "112에 신고할 때 뭐라고 말하나요", "kind": "intrusion", "answers": ["intrusion-24", "intrusion-25"] },
+    { "q": "침입 영상은 어떻게 보존하나요", "kind": "intrusion", "answers": ["intrusion-11"] },
+    { "q": "침입 대응 첫 단계가 뭔가요", "kind": "intrusion", "answers": ["intrusion-05"] },
+    { "q": "관제요원이 직접 나가서 확인해도 되나요", "kind": "intrusion", "answers": ["intrusion-01"] },
+
+    { "q": "배회하는 사람을 얼마나 지켜봐야 하나요", "kind": "loitering", "answers": ["loitering-10", "loitering-06", "loitering-02"] },
+    { "q": "주차장에서 차들 사이를 계속 돌아다녀요", "kind": "loitering", "answers": ["loitering-17"] },
+    { "q": "누가 아이를 계속 따라다녀요", "kind": "loitering", "answers": ["loitering-19", "loitering-18"] },
+    { "q": "노인이 한참 앉아만 있는데 신고해야 하나요", "kind": "loitering", "answers": ["loitering-22", "loitering-20", "loitering-23"] },
+    { "q": "배회 신고는 어디에 하나요", "kind": "loitering", "answers": ["loitering-08", "loitering-03"] },
+    { "q": "그냥 쉬고 있는 사람과 배회를 어떻게 구분하나요", "kind": "loitering", "answers": ["loitering-23"] },
+    { "q": "교량 난간 쪽으로 자꾸 다가가요", "kind": "loitering", "answers": ["loitering-21"] },
+    { "q": "배회 등급 판단 기준이 뭔가요", "kind": "loitering", "answers": ["loitering-13", "loitering-14"] },
+    { "q": "배회 상황을 누구에게 알리나요", "kind": "loitering", "answers": ["loitering-09"] },
+    { "q": "배회가 끝나면 무엇을 기록하나요", "kind": "loitering", "answers": ["loitering-12"] }
+  ],
+  "negative": [
+    "점심 메뉴 추천해줘",
+    "오늘 날씨 어때요",
+    "카메라 렌즈는 어떻게 닦나요",
+    "직원 휴가 신청은 어떻게 하나요",
+    "서버 비밀번호가 뭐예요"
+  ]
+}
