@@ -8,7 +8,7 @@ import sys
 
 from ..rag.search import MIN_SIMILARITY, search
 from .client import ask
-from .prompt import SYSTEM_PROMPT, build_user_prompt
+from .prompt import NOT_FOUND, SYSTEM_PROMPT, build_user_prompt
 
 
 def answer(question, kind=None):
@@ -24,10 +24,16 @@ def answer(question, kind=None):
             usable.append(one)
 
     if not usable:
-        return {"text": "매뉴얼에서 찾지 못했습니다.", "chunks": []}
+        return {"text": NOT_FOUND + ".", "chunks": []}
 
     user_prompt = build_user_prompt(question, usable)
     text = ask(SYSTEM_PROMPT, user_prompt)
+
+    # 못 찾았다고 답했으면 근거를 붙이지 않는다.
+    # "못 찾았습니다" 아래에 쪽 번호가 다섯 개 붙어 있으면
+    # 관제요원이 그 쪽을 펴 보고 헛걸음한다.
+    if NOT_FOUND in text:
+        return {"text": text, "chunks": []}
 
     return {"text": text, "chunks": usable}
 

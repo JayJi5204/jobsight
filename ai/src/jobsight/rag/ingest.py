@@ -124,6 +124,10 @@ def is_chapter_start(first_line, expected_number):
 def group_chapters(pages):
     """
     쪽 목록을 장 단위로 묶는다. 장 하나가 여러 쪽에 걸칠 수 있다.
+
+    글자를 그냥 이어 붙이면 쪽 경계가 사라진다. 그러면 6쪽에 있는
+    4단계의 출처가 장의 첫 쪽인 5쪽으로 찍힌다.
+    그래서 줄마다 어느 쪽에서 왔는지 달고 다닌다.
     """
 
     chapters = []
@@ -138,6 +142,11 @@ def group_chapters(pages):
         lines = one_page["text"].split("\n")
         first_line = lines[0].strip()
 
+        # 줄 하나하나에 쪽 번호를 달아 둔다.
+        numbered_lines = []
+        for line in lines:
+            numbered_lines.append({"page": one_page["page"], "text": line})
+
         if is_chapter_start(first_line, expected_number):
             # 새 장이 시작됐다. 앞 장을 목록에 넣는다.
             if current_chapter is not None:
@@ -145,16 +154,15 @@ def group_chapters(pages):
 
             current_chapter = {
                 "title": first_line,
-                "start_page": one_page["page"],
-                "text": one_page["text"],
+                "lines": numbered_lines,
             }
 
             # 부록은 번호가 없으므로 기대 번호를 올리지 않는다.
             if not first_line.startswith("부록"):
                 expected_number = expected_number + 1
         else:
-            # 앞 장이 이어지는 쪽이다. 글자를 뒤에 붙인다.
-            current_chapter["text"] = current_chapter["text"] + "\n" + one_page["text"]
+            # 앞 장이 이어지는 쪽이다. 줄을 뒤에 붙인다.
+            current_chapter["lines"] = current_chapter["lines"] + numbered_lines
 
     if current_chapter is not None:
         chapters.append(current_chapter)
@@ -178,17 +186,29 @@ def is_section_start(line):
     return False
 
 
-def make_section(chapter, section_title, lines):
+def text_of(numbered_lines):
+    """쪽 번호가 달린 줄 목록에서 글자만 꺼내 이어 붙인다."""
+
+    texts = []
+    for one in numbered_lines:
+        texts.append(one["text"])
+
+    return "\n".join(texts)
+
+
+def make_section(chapter, section_title, numbered_lines):
     """
     소항목 하나를 딕셔너리로 만든다.
-    어느 장에서 나왔는지 같이 들고 간다.
+
+    쪽은 장의 첫 쪽이 아니라 이 소항목의 첫 줄이 있던 쪽이다.
     """
 
     return {
         "title": chapter["title"],
         "section": section_title,
-        "start_page": chapter["start_page"],
-        "text": "\n".join(lines),
+        "page": numbered_lines[0]["page"],
+        "lines": numbered_lines,
+        "text": text_of(numbered_lines),
     }
 
 
@@ -197,9 +217,10 @@ def split_sections(chapter):
     장 하나를 소항목 목록으로 쪼갠다. 짧은 장은 쪼개지 않는다.
     """
 
-    all_lines = chapter["text"].split("\n")
+    all_lines = chapter["lines"]
+    whole_text = text_of(all_lines)
 
-    if len(chapter["text"]) <= MAX_CHAPTER_CHARS:
+    if len(whole_text) <= MAX_CHAPTER_CHARS:
         return [make_section(chapter, "", all_lines)]
 
     sections = []
@@ -208,8 +229,8 @@ def split_sections(chapter):
     current_title = ""
     current_lines = []
 
-    for line in all_lines:
-        stripped = line.strip()
+    for one in all_lines:
+        stripped = one["text"].strip()
 
         if is_section_start(stripped):
             if current_lines:
@@ -218,7 +239,7 @@ def split_sections(chapter):
             current_title = stripped
             current_lines = []
         else:
-            current_lines.append(line)
+            current_lines.append(one)
 
     if current_lines:
         sections.append(make_section(chapter, current_title, current_lines))
@@ -226,7 +247,7 @@ def split_sections(chapter):
     return sections
 
 
-def make_part(section, lines, part_number):
+def make_part(section, numbered_lines, part_number):
     """길이 때문에 나뉜 조각 하나를 만든다. 몇 번째 토막인지 제목에 적는다."""
 
     section_title = section["section"]
@@ -239,8 +260,9 @@ def make_part(section, lines, part_number):
     return {
         "title": section["title"],
         "section": section_title,
-        "start_page": section["start_page"],
-        "text": "\n".join(lines),
+        "page": numbered_lines[0]["page"],
+        "lines": numbered_lines,
+        "text": text_of(numbered_lines),
     }
 
 
@@ -254,25 +276,33 @@ def split_by_length(section):
     if len(section["text"]) <= MAX_SECTION_CHARS:
         return [section]
 
-    parts = []
+    # 먼저 줄을 묶기만 한다. 번호는 나중에 붙인다.
+    groups = []
     current_lines = []
     current_length = 0
-    part_number = 1
 
-    for line in section["text"].split("\n"):
-        # 이 줄을 더하면 한계를 넘고, 이미 모아 둔 게 있으면 거기서 끊는다.
-        if current_length + len(line) > MAX_SECTION_CHARS and current_lines:
-            parts.append(make_part(section, current_lines, part_number))
-            part_number = part_number + 1
+    for one in section["lines"]:
+        line_length = len(one["text"])
+
+        if current_length + line_length > MAX_SECTION_CHARS and current_lines:
+            groups.append(current_lines)
             current_lines = []
             current_length = 0
 
-        current_lines.append(line)
-        current_length = current_length + len(line)
+        current_lines.append(one)
+        current_length = current_length + line_length
 
-    # 마지막 토막을 넣는다.
     if current_lines:
-        parts.append(make_part(section, current_lines, part_number))
+        groups.append(current_lines)
+
+    # 한 묶음뿐이면 실제로는 안 쪼개진 것이다.
+    # 그런데도 "(1)" 을 붙이면 "(2)" 가 있는 것처럼 보인다.
+    if len(groups) == 1:
+        return [section]
+
+    parts = []
+    for position in range(len(groups)):
+        parts.append(make_part(section, groups[position], position + 1))
 
     return parts
 
@@ -320,7 +350,7 @@ def build_chunks():
                         "id": f"{kind}-{order:02d}",
                         "kind": kind,
                         "doc": pdf_path.name,
-                        "page": one_part["start_page"],
+                        "page": one_part["page"],
                         "chapter": one_part["title"],
                         "section": one_part["section"],
                         "text": one_part["text"],
