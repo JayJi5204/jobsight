@@ -20,7 +20,7 @@ load_dotenv(ENV_PATH)
 STEP_CHAPTER_KEYWORD = "공통 대응 절차"
 
 SQL = """
-    SELECT id, section, page, text, tables
+    SELECT id, section, page, text, tables, boxes
     FROM chunks
     WHERE kind = %s
       AND chapter LIKE %s
@@ -48,8 +48,9 @@ def steps_of(kind):
                 "step": row[1],
                 "page": row[2],
                 "text": row[3],
-                # 표는 글로 풀면 칸이 사라진다. 구조 그대로 넘긴다.
+                # 표와 네모는 글로 풀면 칸이 사라진다. 구조 그대로 넘긴다.
                 "tables": row[4] or [],
+                "boxes": row[5] or [],
             }
         )
 

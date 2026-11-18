@@ -1,14 +1,17 @@
 """
 PDF 쪽 하나를 줄 목록으로 읽는다.
 
-머리말과 쪽번호를 걷어내고, 표는 글로 풀지 않고 칸째로 들고 온다.
-줄마다 쪽의 어디에 있는지도 비율로 적어 둔다 — 화면이 원문을 띄울 때
-그 대목에 형광펜을 칠하는 데 쓴다.
+머리말과 쪽번호를 걷어내고, 줄바꿈으로 끊긴 문장을 다시 잇는다.
+표와 색 네모는 글로 풀지 않고 구조째로 들고 온다 — 표는 table.py,
+네모는 box.py 가 맡고, 여기서는 셋을 한 줄 목록으로 엮는다.
 """
 
 import re
 
 import pymupdf
+
+from .box import box_at, boxes_of, fold_boxes
+from .table import LINE_GAP, inside, tables_of
 
 # 쪽마다 되풀이되는 머리말과 쪽번호다.
 # 지우지 않으면 모든 조각에 같은 문장이 들어가서,
@@ -24,11 +27,15 @@ PAGE_MARK = re.compile(r"^\d+\s*/\s*\d+$")
 # 어떤 질문에도 어중간하게 걸려서 검색을 흐린다.
 FIRST_BODY_PAGE = 3
 
-# 같은 줄로 볼 만큼 가까운 높이 차이
-LINE_GAP = 5.0
+# 줄 사이가 이보다 좁으면 자리가 없어 넘어간 같은 문장이다.
+# 매뉴얼을 재어 보면 새 항목은 18.8pt 넘게 떨어지고,
+# 넘어간 줄은 16.5pt 안쪽이다. 그 사이에 금을 긋는다.
+WRAP_GAP = 17.0
 
-# 낱말 사이가 이보다 좁으면 원래 붙어 있던 글자다
-WORD_GAP = 1.2
+# 이보다 긴 줄은 오른쪽 끝까지 찬 줄이다.
+# 끝까지 찬 줄 바로 아래의 줄은 넘어온 줄로 본다 —
+# 짧게 끝난 줄 아래는 넘어온 줄이 아니라 다음 항목이다.
+WIDE_LINE = 300.0
 
 
 def is_furniture(line):
@@ -40,112 +47,58 @@ def is_furniture(line):
     return PAGE_MARK.match(line) is not None
 
 
-def group_rows(words):
+def is_wrapped(before, after):
     """
-    낱말을 줄 단위로 묶는다.
+    뒷줄이 앞줄에서 넘어온 같은 문장인가.
 
-    높이를 고정 칸으로 나누면 한 줄이 칸 경계에 걸려 찢어진다.
-    가운데 높이가 가까운 것끼리 모은다.
-    """
+    줄 사이가 좁은 것만으로는 모른다. 카드의 확인 항목들도 16pt 안쪽으로
+    붙어 있어서, 그것까지 이으면 서로 다른 항목이 한 문장이 된다.
+    그래서 앞줄이 오른쪽 끝까지 찼는지도 본다 — 자리가 남은 채로 끝난
+    줄은 넘어간 것이 아니라 거기서 끝난 항목이다.
 
-    ordered = []
-    for word in words:
-        middle = (word[1] + word[3]) / 2
-        ordered.append((middle, word[0], word))
-
-    ordered.sort(key=lambda one: (one[0], one[1]))
-
-    rows = []
-
-    for middle, _, word in ordered:
-        if rows and abs(middle - rows[-1]["mid"]) <= LINE_GAP:
-            rows[-1]["words"].append(word)
-        else:
-            rows.append({"mid": middle, "words": [word]})
-
-    return rows
-
-
-def row_text(words):
-    """한 줄의 낱말을 글로 잇는다. 원래 붙어 있던 자리는 띄우지 않는다."""
-
-    row = sorted(words, key=lambda one: one[0])
-
-    text = row[0][4]
-    right = row[0][2]
-
-    for word in row[1:]:
-        if word[0] - right < WORD_GAP:
-            text = text + word[4]
-        else:
-            text = text + " " + word[4]
-
-        if word[2] > right:
-            right = word[2]
-
-    return text
-
-
-def cell_text(page, box):
-    """
-    표 한 칸의 글을 읽는다.
-
-    표에서 바로 꺼내면 띄어쓰기가 사라지고, 글에서만 꺼내면
-    어느 칸의 글인지 알 수 없다. 좌표로 둘을 합쳐야 제대로 나온다.
+    같은 네모 안인지도 본다. 네모 안의 글과 밖의 글은 이어지지 않는다.
     """
 
-    picked = []
+    gap = after["y"] - before["y"]
 
-    for word in page.get_text("words"):
-        cx = (word[0] + word[2]) / 2
-        cy = (word[1] + word[3]) / 2
+    if gap <= LINE_GAP or gap > WRAP_GAP:
+        return False
 
-        if box[0] <= cx <= box[2] and box[1] <= cy <= box[3]:
-            picked.append(word)
+    if before["box"] != after["box"]:
+        return False
 
-    if not picked:
-        return ""
-
-    texts = []
-    for row in group_rows(picked):
-        texts.append(row_text(row["words"]))
-
-    return " ".join(texts)
+    return before["right"] - before["x"] >= WIDE_LINE
 
 
-def tables_of(page):
+def join_wrapped(lines):
     """
-    쪽에 그려진 표를 찾아 칸 글자까지 채운다.
+    자리가 없어 다음 줄로 넘어간 문장을 다시 잇는다.
 
-    괘선만 보고 찾는다. 글자 정렬까지 보는 기본 방식은 왼쪽 체크 목록이
-    오른쪽 표와 줄이 맞으면 그것까지 한 표로 묶어 버린다.
+    이어 붙일 때 띄우지 않는다. 한국어 줄바꿈은 낱말 가운데에서 끊기므로
+    띄우면 낱말이 갈라진다.
     """
 
-    found = []
+    joined = []
 
-    for table in page.find_tables(strategy="lines_strict").tables:
-        rows = []
+    for one in lines:
+        if one["table"] is not None:
+            joined.append(dict(one))
+            continue
 
-        for row in table.rows:
-            cells = []
-            for box in row.cells:
-                cells.append(cell_text(page, box) if box else "")
+        if joined and joined[-1]["table"] is None and is_wrapped(joined[-1], one):
+            last = joined[-1]
+            last["text"] = last["text"] + one["text"]
+            last["right"] = one["right"]
+            last["y"] = one["y"]
+            continue
 
-            if "".join(cells).strip():
-                rows.append(cells)
+        joined.append(dict(one))
 
-        if rows:
-            found.append({"rect": tuple(table.bbox), "rows": rows})
-
-    return found
+    return joined
 
 
-def page_lines(doc, page_index):
-
-    # PyMuPDF는 쪽을 0부터 센다. 3쪽을 보려면 2를 넣어야 한다.
-    page = doc[page_index]
-
-    tables = tables_of(page)
+def text_lines_of(page, tables, boxes):
+    """쪽의 글줄을 모은다. 표 안의 글은 표 쪽에서 들고 왔으므로 뺀다."""
 
     lines = []
 
@@ -167,40 +120,58 @@ def page_lines(doc, page_index):
             if is_furniture(text):
                 continue
 
-            left = (line["bbox"][0] + line["bbox"][2]) / 2
-            middle = (line["bbox"][1] + line["bbox"][3]) / 2
+            middle_x = (line["bbox"][0] + line["bbox"][2]) / 2
+            middle_y = (line["bbox"][1] + line["bbox"][3]) / 2
 
-            # 표 안의 글은 빼낸다. 표 쪽에서 칸째로 들고 왔다.
-            inside = False
+            in_table = False
             for one in tables:
-                rect = one["rect"]
-                if rect[0] <= left <= rect[2] and rect[1] <= middle <= rect[3]:
-                    inside = True
+                if inside(one["rect"], middle_x, middle_y):
+                    in_table = True
 
-            if inside:
+            if in_table:
                 continue
 
             # origin 은 글자가 앉는 밑줄선이다. 크기가 달라도 나란한 줄끼리 같다.
+            baseline = line["spans"][0]["origin"][1]
+
             lines.append({
-                "y": line["spans"][0]["origin"][1],
+                "y": baseline,
                 "x": line["bbox"][0],
+                "right": line["bbox"][2],
                 "text": text,
                 "table": None,
+                "box": box_at(boxes, baseline),
             })
+
+    return lines
+
+
+def page_lines(doc, page_index):
+    """쪽 하나를 글줄·표·네모가 제자리에 선 한 목록으로 만든다."""
+
+    # PyMuPDF는 쪽을 0부터 센다. 3쪽을 보려면 2를 넣어야 한다.
+    page = doc[page_index]
+
+    tables = tables_of(page)
+    boxes = boxes_of(page, tables)
+
+    lines = text_lines_of(page, tables, boxes)
 
     # 표를 제자리 높이에 표식으로 끼운다.
     for one in tables:
         lines.append({
             "y": one["rect"][1],
             "x": one["rect"][0],
+            "right": one["rect"][2],
             "text": "",
             "table": one["rows"],
+            "box": None,
         })
 
     # 밑줄선이 거의 같으면 한 줄이다. 그 안에서는 왼쪽부터 읽는다.
     lines.sort(key=lambda one: (round(one["y"], 1), one["x"]))
 
-    return lines
+    return fold_boxes(join_wrapped(lines))
 
 
 def read_pages(pdf_path):
