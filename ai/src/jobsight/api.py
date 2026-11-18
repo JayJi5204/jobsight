@@ -6,15 +6,18 @@ RAG 를 HTTP 로 연다.
 """
 
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
+from .cards import cards_of
 from .llm.answer import answer
 from .procedure import steps_of
 from .rag.search import get_model
 
-# docs/event-contract.md 의 kind 와 같아야 한다.
+# backend 의 EventKind enum 와 같아야 한다.
 KINDS = ["fall", "fire", "intrusion", "loitering"]
 
 
@@ -27,6 +30,11 @@ async def lifespan(app):
 
 
 app = FastAPI(title="jobsight ai", lifespan=lifespan)
+
+# 매뉴얼 원문. 쪽마다 그림으로 잘라 두지 않고 PDF 를 그대로 내준다.
+# 브라우저의 PDF 보기가 스크롤·확대·검색을 해 주고,
+# 잘라 두면 매뉴얼을 고칠 때마다 한쪽만 낡는다.
+MANUAL_DIR = Path(__file__).resolve().parents[3] / "manual"
 
 
 class AskRequest(BaseModel):
@@ -51,6 +59,31 @@ def procedure(kind: str):
         raise HTTPException(status_code=404, detail="모르는 사건 종류다")
 
     return {"kind": kind, "steps": steps_of(kind)}
+
+
+@app.get("/manual/{kind}.pdf")
+def manual(kind: str):
+    """사건 종류의 대응 매뉴얼 원문. 화면이 그대로 띄운다."""
+
+    if kind not in KINDS:
+        raise HTTPException(status_code=404, detail="모르는 사건 종류다")
+
+    path = MANUAL_DIR / ("cctv_" + kind + "_manual.pdf")
+
+    if not path.exists():
+        raise HTTPException(status_code=404, detail="매뉴얼 파일이 없다")
+
+    return FileResponse(path, media_type="application/pdf")
+
+
+@app.get("/cards/{kind}")
+def cards(kind: str):
+    """사건 종류의 유형 대응 카드. 절차와 마찬가지로 늘 같은 내용이다."""
+
+    if kind not in KINDS:
+        raise HTTPException(status_code=404, detail="모르는 사건 종류다")
+
+    return {"kind": kind, "cards": cards_of(kind)}
 
 
 @app.post("/ask")
