@@ -25,7 +25,7 @@ DOC_PREFIX = "passage: "
 # 배치를 크게 잡으면 메모리가 모자란다. 조각이 113개뿐이라 작아도 금방 끝난다.
 BATCH_SIZE = 16
 
-# docs/event-contract.md 의 kind 를 사람이 읽는 말로 바꾼다.
+# backend 의 EventKind enum 의 kind 를 사람이 읽는 말로 바꾼다.
 KIND_LABELS = {
     "fall": "추락",
     "fire": "화재",
@@ -111,9 +111,9 @@ if __name__ == "__main__":
             cursor.execute(
                 """
                     INSERT INTO chunks
-                        (id, kind, doc, page, chapter, section, text, embedding)
+                        (id, kind, doc, page, chapter, section, text, tables, embedding)
                     VALUES
-                        (%s, %s, %s, %s, %s, %s, %s, %s::vector)
+                        (%s, %s, %s, %s, %s, %s, %s, %s::jsonb, %s::vector)
                     """,
                 (
                     chunk["id"],
@@ -123,6 +123,8 @@ if __name__ == "__main__":
                     chunk["chapter"],
                     chunk["section"],
                     chunk["text"],
+                    # 표는 글이 아니라 구조다. jsonb 로 그대로 둔다.
+                    json.dumps(chunk["tables"], ensure_ascii=False),
                     to_vector_text(vector),
                 ),
             )
