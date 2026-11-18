@@ -93,6 +93,11 @@
   --pane-width: 360px;
   /* 넓고 낮은 화면 — 기둥을 좀혀 영상 자리를 남긴다 */
   --pane-width-tight: 240px;
+  /*
+   * 대응 절차 기둥만 한 단 넓다. 경보는 한 줄에 종류와 시각만 서지만,
+   * 절차는 매뉴얼 문장이 그대로 들어와서 360px 에서는 한 줄이 열 글자쯤에서 꺾인다.
+   */
+  --pane-width-wide: 540px;
   /* 눌리는 판 — 보통 조작부는 색이 아니라 금속으로 구분한다 */
   --btn: linear-gradient(180deg, #262d34 0%, #171b1f 100%);
   --btn-hover: linear-gradient(180deg, #303841 0%, #1d2228 100%);
@@ -401,10 +406,21 @@ video-stream video::-webkit-media-controls-enclosure {
     width: var(--pane-width);
     max-height: none;
   }
+  .side-panel.pane-procedure { width: var(--pane-width-wide); }
   .workspace-inner > main { flex: 1 1 auto; }
   .workspace-inner.is-tight > .side-panel { flex: 0 0 auto; min-height: 0; }
   .video-stage { flex: 1 1 auto; aspect-ratio: auto; max-height: none; }
   .map-stage { min-height: 0; }
+}
+
+/*
+ * 대응 중에는 기둥이 넷이 된다 — 구역 · 영상 · 절차 · 경보.
+ *
+ * 1920 밑에서는 넷이 다 서면 영상이 700px 아래로 떨어진다. 그 폭부터 경보를 내린다.
+ * 지금 손에 쥔 사건이 아직 안 본 경보보다 급하고, 절차는 영상과 함께 있어야 한다.
+ */
+@media (max-width: 1919px) {
+  .workspace.responding .rail-events { display: none !important; }
 }
 
 /*
@@ -477,7 +493,8 @@ video-stream video::-webkit-media-controls-enclosure {
 /* 넓고 낮아서 기둥을 세우긴 했지만 자리가 빠듯한 구간 — 기둥을 좁혀 영상 자리를 남긴다 */
 @media (min-width: 768px) and (max-width: 1279px) and (max-height: 560px) {
   .pane-tree,
-  .side-panel { width: var(--pane-width-tight); }
+  .side-panel,
+  .side-panel.pane-procedure { width: var(--pane-width-tight); }
 }
 
 @media (prefers-reduced-motion: reduce) {

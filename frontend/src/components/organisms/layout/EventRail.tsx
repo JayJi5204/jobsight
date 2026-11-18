@@ -20,7 +20,19 @@ import { dayKeyOf } from '@/utils/time'
  * 지도는 한 장을 크게 보는 화면이라 누우면 뺀다 — 거기서 경보는 구마다 켜진 등이
  * 이미 말하고 있다.
  */
-export function EventRail({ className = '' }: { className?: string }) {
+export function EventRail({
+  className = '',
+  onPick,
+}: {
+  className?: string
+  /**
+   * 줄을 눌렀을 때. 주면 이 화면 안에서 고르고, 안 주면 사건 화면으로 간다.
+   *
+   * 실시간 화면은 그 자리에서 대응을 시작한다 — 경보를 누르자마자 다른 화면으로
+   * 넘어가면 보고 있던 영상이 사라진다.
+   */
+  onPick?: (id: number) => void
+}) {
   const navigate = useNavigate()
   const events = useEvents()
   const { cameras } = useCameras()
@@ -52,7 +64,11 @@ export function EventRail({ className = '' }: { className?: string }) {
             return (
               <Fragment key={e.id}>
                 {newDay && <DayDivider at={e.detectedAt} />}
-                <EventCard event={e} cameraLabel={label(e.cameraId)} onOpen={() => navigate(`${ROUTES.EVENTS}?event=${e.id}`)} />
+                <EventCard
+                  event={e}
+                  cameraLabel={label(e.cameraId)}
+                  onOpen={() => (onPick ? onPick(e.id) : navigate(`${ROUTES.EVENTS}?event=${e.id}`))}
+                />
               </Fragment>
             )
           })
