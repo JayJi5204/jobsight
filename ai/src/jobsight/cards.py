@@ -21,7 +21,7 @@ load_dotenv(ENV_PATH)
 CARD_CHAPTER_KEYWORD = "유형별 대응 카드"
 
 SQL = """
-    SELECT id, section, page, text, tables
+    SELECT id, section, page, text, tables, boxes
     FROM chunks
     WHERE kind = %s
       AND chapter LIKE %s
@@ -48,11 +48,12 @@ def cards_of(kind):
         cards.append(
             {
                 "id": row[0],
-                "mark_no": row[1],
+                "mark": row[1],
                 "name": head,
                 "page": row[2],
                 "text": body,
                 "tables": row[4] or [],
+                "boxes": row[5] or [],
             }
         )
 
@@ -65,4 +66,4 @@ if __name__ == "__main__":
     kind = sys.argv[1]
 
     for one in cards_of(kind):
-        print(one["mark_no"], one["name"], "—", one["page"], "쪽")
+        print(one["mark"], one["name"], "—", one["page"], "쪽")

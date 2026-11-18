@@ -64,6 +64,7 @@ def group_chapters(pages):
                 "page": one_page["page"],
                 "text": one["text"],
                 "table": one["table"],
+                "box": one["box"],
             })
 
         first_line = ""

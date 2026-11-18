@@ -21,6 +21,9 @@ ENV_PATH = REPO_ROOT / "ai" / ".env"
 MODEL_NAME = "nlpai-lab/KoE5"
 DOC_PREFIX = "passage: "
 
+# 줄바꿈 글자
+NEWLINE = chr(10)
+
 # GPU 1 은 kanana 가 27GB 를 쓰고 있어 5GB 남짓만 남는다.
 # 배치를 크게 잡으면 메모리가 모자란다. 조각이 113개뿐이라 작아도 금방 끝난다.
 BATCH_SIZE = 16
@@ -56,7 +59,29 @@ def embed_text_of(chunk):
     if chunk["section"]:
         head = head + " > " + chunk["section"]
 
-    return DOC_PREFIX + head + "\n" + chunk["text"]
+    return DOC_PREFIX + head + NEWLINE + chunk["text"] + box_text_of(chunk)
+
+
+def box_text_of(chunk):
+    """
+    색 네모의 글을 찾기용으로 이어 붙인다.
+
+    보여 줄 때는 네모를 따로 그려야 해서 text 에 섞지 않았다. 그렇다고
+    벡터에서도 빠지면 "다친 사람을 옮겨도 되나" 같은 물음이 그 네모에
+    닿지 못한다. 저장하는 글은 그대로 두고 벡터에만 더해 둔다.
+    """
+
+    texts = []
+
+    for one in chunk["boxes"]:
+        texts.append(one["title"])
+        for item in one["items"]:
+            texts.append(item)
+
+    if not texts:
+        return ""
+
+    return NEWLINE + NEWLINE.join(texts)
 
 
 def to_vector_text(vector):
@@ -111,9 +136,9 @@ if __name__ == "__main__":
             cursor.execute(
                 """
                     INSERT INTO chunks
-                        (id, kind, doc, page, chapter, section, text, tables, embedding)
+                        (id, kind, doc, page, chapter, section, text, tables, boxes, embedding)
                     VALUES
-                        (%s, %s, %s, %s, %s, %s, %s, %s::jsonb, %s::vector)
+                        (%s, %s, %s, %s, %s, %s, %s, %s::jsonb, %s::jsonb, %s::vector)
                     """,
                 (
                     chunk["id"],
@@ -123,8 +148,9 @@ if __name__ == "__main__":
                     chunk["chapter"],
                     chunk["section"],
                     chunk["text"],
-                    # 표는 글이 아니라 구조다. jsonb 로 그대로 둔다.
+                    # 표와 네모는 글이 아니라 구조다. jsonb 로 그대로 둔다.
                     json.dumps(chunk["tables"], ensure_ascii=False),
+                    json.dumps(chunk["boxes"], ensure_ascii=False),
                     to_vector_text(vector),
                 ),
             )

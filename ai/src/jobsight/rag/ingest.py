@@ -68,6 +68,7 @@ def build_chunks():
                         "section": one_part["section"],
                         "text": one_part["text"],
                         "tables": one_part["tables"],
+                        "boxes": one_part["boxes"],
                         "n_chars": len(one_part["text"]),
                     }
 

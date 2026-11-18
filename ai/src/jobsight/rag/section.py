@@ -6,10 +6,6 @@
 줄 가운데를 자르면 문장이 끊겨 그 조각만으로는 뜻이 통하지 않는다.
 """
 
-# 임베딩 모델이 한번에 받을 수 있는 글자 수에 한계가 있다(대략 700~1000자)
-# 이보다 긴 장만 소항목으로 쪼갠다.
-MAX_CHAPTER_CHARS = 2000
-
 # 소제목이 없어 길게 남은 조각을 나누는 기준.
 # KoE5 가 한 번에 읽는 길이가 한국어로 700~900자쯤이라, 넘으면 뒤가 잘린다.
 MAX_SECTION_CHARS = 800
@@ -54,8 +50,10 @@ def text_of(numbered_lines):
 
     texts = []
     for one in numbered_lines:
-        # 표식은 글이 아니다. 표는 따로 담아 두었다.
+        # 표식은 글이 아니다. 표와 네모는 따로 담아 두었다.
         if one.get("table"):
+            continue
+        if one.get("box"):
             continue
         texts.append(one["text"])
 
@@ -74,6 +72,24 @@ def tables_in(numbered_lines):
     return found
 
 
+def boxes_in(numbered_lines):
+    """
+    줄 목록에 끼어 있는 색 네모들을 차례대로 꺼낸다.
+
+    글에 섞지 않는 이유는 매뉴얼이 이것을 떼어 두었기 때문이다.
+    섞어 버리면 화면에서 테두리를 칠 수 없고, 네모의 제목이
+    앞 문장에 이어지는 말처럼 읽힌다.
+    """
+
+    found = []
+
+    for one in numbered_lines:
+        if one.get("box"):
+            found.append(one["box"])
+
+    return found
+
+
 def make_section(chapter, section_title, numbered_lines):
     """
     소항목 하나를 딕셔너리로 만든다.
@@ -88,19 +104,22 @@ def make_section(chapter, section_title, numbered_lines):
         "lines": numbered_lines,
         "text": text_of(numbered_lines),
         "tables": tables_in(numbered_lines),
+        "boxes": boxes_in(numbered_lines),
     }
 
 
 def split_sections(chapter):
     """
-    장 하나를 소항목 목록으로 쪼갠다. 짧은 장은 쪼개지 않는다.
+    장 하나를 소항목 목록으로 쪼갠다.
+
+    길이를 보지 않는다. 전에는 2000자를 넘는 장만 쪼갰는데, 화면이
+    1단계~8단계를 따로 받아야 하므로 글자 수가 조금 줄면 단계가
+    사라지는 일이 생긴다. 소제목이 있으면 길이와 상관없이 쪼갠다.
+
+    소제목이 없는 장은 제목 없는 한 덩어리로 남는다.
     """
 
     all_lines = chapter["lines"]
-    whole_text = text_of(all_lines)
-
-    if len(whole_text) <= MAX_CHAPTER_CHARS:
-        return [make_section(chapter, "", all_lines)]
 
     sections = []
 
@@ -128,6 +147,7 @@ def split_sections(chapter):
                 "page": one["page"],
                 "text": rest,
                 "table": None,
+                "box": None,
             })
         else:
             current_lines.append(one)
@@ -155,6 +175,7 @@ def make_part(section, numbered_lines, part_number):
         "lines": numbered_lines,
         "text": text_of(numbered_lines),
         "tables": tables_in(numbered_lines),
+        "boxes": boxes_in(numbered_lines),
     }
 
 
