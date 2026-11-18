@@ -12,5 +12,8 @@ import { GO2RTC_BASE } from '@/constants/stream'
 /** 백엔드 */
 export const api = axios.create({ baseURL: '/api' })
 
+/** 매뉴얼. 대응 절차와 유형 카드를 내준다 */
+export const ai = axios.create({ baseURL: '/ai' })
+
 /** go2rtc. 영상은 백엔드를 거치지 않으므로 서버가 다르다 */
 export const go2rtc = axios.create({ baseURL: GO2RTC_BASE })

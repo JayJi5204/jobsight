@@ -1,4 +1,5 @@
 import { Link, NavLink } from 'react-router-dom'
+import { Wordmark } from '@/components/atoms/Wordmark'
 import { StatusStrip } from '@/components/molecules/StatusStrip'
 import { NAV, ROUTES } from '@/constants/routes'
 import { useClock } from '@/hooks/useClock'
@@ -63,13 +64,10 @@ export function TopBar() {
         {/* 누르면 첫 화면으로 간다. 글자만 걸지 않고 칸 전체를 누르게 둔다 */}
         <Link
           to={ROUTES.LIVE}
-          aria-label="jobsight 실시간 화면으로"
+          aria-label="JobSight 실시간 화면으로"
           className="hdr-brand w-(--pane-width) shrink-0 items-center justify-center border-r border-line px-4 transition-colors hover:bg-white/3"
         >
-          {/* 자간이 마지막 글자 뒤에도 붙어서, 그만큼 왼쪽을 밀어야 칸 가운데에 선다 */}
-          <span className="pl-[0.3em] text-xl font-bold tracking-[0.3em] text-ink [text-shadow:var(--engrave)]">
-            JOBSIGHT
-          </span>
+          <Wordmark lamp="on" className="text-3xl text-ink [text-shadow:var(--engrave)]" />
         </Link>
 
         <div className="flex min-w-0 flex-1 items-stretch gap-3 pr-6 pl-2 wide:gap-4 wide:pr-8 wide:pl-3">
