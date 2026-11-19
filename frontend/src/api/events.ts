@@ -15,3 +15,16 @@ export const fetchEvents = async (signal?: AbortSignal): Promise<DetectionEvent[
 /** 확인 처리. PATCH /api/events/{id} — 확인한 시각은 서버가 찍는다 */
 export const reviewEvent = async (id: number): Promise<DetectionEvent> =>
   (await api.patch<DetectionEvent>(`/events/${id}`, { status: 'ACKED' })).data
+
+/**
+ * 대응 종료. PATCH /api/events/{id}/end
+ *
+ * 끝난 시각은 여기서 찍어 보낸다. 서버가 찍는 확인 시각과 다른 것은,
+ * 끝난 때를 관제요원이 나중에 고쳐 적을 수 있어야 해서다.
+ */
+export const endEvent = async (id: number): Promise<DetectionEvent> =>
+  (await api.patch<DetectionEvent>(`/events/${id}/end`, { endedAt: new Date().toISOString() })).data
+
+/** 오탐 처리. PATCH /api/events/{id} — 사건이 아니었다고 적는다 */
+export const falsePositiveEvent = async (id: number): Promise<DetectionEvent> =>
+  (await api.patch<DetectionEvent>(`/events/${id}`, { status: 'FALSE_POSITIVE' })).data

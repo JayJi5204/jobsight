@@ -3,6 +3,7 @@ import { Button } from '@/components/atoms/Button'
 import { Panel } from '@/components/atoms/Panel'
 import { eventLabel, SEVERITY_LABEL, SEVERITY_TEXT, severityOf } from '@/constants/events'
 import { useManual } from '@/hooks/useManual'
+import { closeEvent, markFalsePositive } from '@/store/events'
 import { groupsFor, partsOf } from '@/utils/manual'
 import type { DetectionEvent } from '@/types/event'
 import type { ManualBox, ManualCard, ManualTable, ProcedureStep } from '@/types/manual'
@@ -105,6 +106,8 @@ export function ProcedurePane({ event, where, onClose, onManual, className = '' 
   const [picking, setPicking] = useState(false)
   const [detailed, setDetailed] = useState(false)
   const [now, setNow] = useState(() => Date.now())
+  // 서버에 알리는 동안 두 단추를 막는다. 두 번 누르면 두 번 적힌다
+  const [closing, setClosing] = useState(false)
 
   // 사건이 바뀌면 처음부터 다시 센다
   useEffect(() => {
@@ -144,6 +147,18 @@ export function ProcedurePane({ event, where, onClose, onManual, className = '' 
     if (step === null) return
     setDone((prev) => new Set(prev).add(step.step))
     if (current < steps.length) setCurrent(current + 1)
+  }
+
+  /**
+   * 사건을 닫는다. 서버가 받은 것을 확인하고 나서 판을 닫는다.
+   *
+   * 닫고 나서 알리면 실패해도 모른다 — 경보는 그대로 떠 있는데 관제요원은 끝낸 줄 안다.
+   */
+  const close = async (mark: (id: number) => Promise<boolean>) => {
+    setClosing(true)
+    const ok = await mark(event.id)
+    setClosing(false)
+    if (ok) onClose()
   }
 
   const head = `${eventLabel(event.kind)} 대응 절차`
@@ -343,10 +358,21 @@ export function ProcedurePane({ event, where, onClose, onManual, className = '' 
         <Button size="sm" variant="secondary" onClick={onClose}>
           닫기
         </Button>
-        <Button size="sm" variant="danger" className="ml-auto">
+        <Button
+          size="sm"
+          variant="danger"
+          className="ml-auto"
+          onClick={() => close(markFalsePositive)}
+          disabled={closing}
+        >
           오탐
         </Button>
-        <Button size="sm" variant="ok" onClick={finishStep} disabled={step === null}>
+        <Button
+          size="sm"
+          variant="ok"
+          onClick={step === null ? () => close(closeEvent) : finishStep}
+          disabled={closing}
+        >
           {step === null ? '사건 종료' : `${partsOf(step).name} 완료`}
         </Button>
       </div>

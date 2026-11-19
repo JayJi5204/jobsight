@@ -8,7 +8,17 @@
  * 대문자인 것은 서버의 enum 이름을 그대로 받기 때문이다. 카메라의 `zone` 도
  * `GANGNAM` 으로 온다 — 어떤 값은 소문자, 어떤 값은 대문자면 받는 쪽이 매번 확인해야 한다.
  */
-export type EventStatus = 'OPEN' | 'ACKED'
+/**
+ * 사건이 지금 어디에 있는가.
+ *
+ * 앞의 둘은 살아 있는 사건이고 뒤의 둘은 닫힌 사건이다.
+ * ENDED 는 진짜였고 대응이 끝난 것, FALSE_POSITIVE 는 사건이 아니었던 것이다.
+ * 둘을 가르는 것은 화면 때문이 아니라 오탐률을 재려면 그 답이 필요해서다.
+ */
+export type EventStatus = 'OPEN' | 'ACKED' | 'ENDED' | 'FALSE_POSITIVE'
+
+/** 닫힌 사건인가. 경보 칸에서 내려가고 카메라 테두리도 꺼진다 */
+export const isClosed = (status: EventStatus): boolean => status === 'ENDED' || status === 'FALSE_POSITIVE'
 
 export type EventKind = 'FALL' | 'FIRE' | 'INTRUSION' | 'LOITERING'
 

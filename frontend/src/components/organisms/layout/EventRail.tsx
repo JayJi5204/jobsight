@@ -6,6 +6,7 @@ import { EventCard } from '@/components/molecules/EventCard'
 import { ROUTES } from '@/constants/routes'
 import { useCameras } from '@/hooks/useCameras'
 import { useEvents } from '@/store/events'
+import { isClosed } from '@/types/event'
 import { dayKeyOf } from '@/utils/time'
 
 /**
@@ -37,10 +38,13 @@ export function EventRail({
   const events = useEvents()
   const { cameras } = useCameras()
 
-  const pending = events.filter((e) => e.status === 'OPEN').length
+  // 끝난 사건과 오탐은 경보 칸에서 내린다. 여기는 지금 손이 가야 할 것만 선다
+  const live = events.filter((e) => !isClosed(e.status))
+
+  const pending = live.filter((e) => e.status === 'OPEN').length
   const label = (id: number) => cameras.find((c) => c.id === id)?.location ?? `카메라 ${id}`
 
-  const shown = [...events].sort((a, b) => b.detectedAt.localeCompare(a.detectedAt)).slice(0, 30)
+  const shown = [...live].sort((a, b) => b.detectedAt.localeCompare(a.detectedAt)).slice(0, 30)
 
   return (
     <Panel
