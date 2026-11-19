@@ -3,18 +3,65 @@
 
 eval/questions.json 이 입력이다. search.py 를 그대로 불러 쓰므로
 search.py 를 고치면 이 결과도 따라 바뀐다.
+
+    python -m jobsight.rag.evaluate           재서 보여 준다
+    python -m jobsight.rag.evaluate --save    지금 숫자를 기준선으로 남긴다
+    python -m jobsight.rag.evaluate --check   기준선보다 떨어지면 실패로 끝난다
 """
 
 import json
+import sys
 from pathlib import Path
 
 from .search import search
 
 REPO_ROOT = Path(__file__).resolve().parents[4]
 QUESTIONS_PATH = REPO_ROOT / "ai" / "eval" / "questions.json"
+BASELINE_PATH = REPO_ROOT / "ai" / "eval" / "baseline.json"
 
 # 상위 몇 개까지 보고 성공으로 칠지.
 TOP_N = 5
+
+# 기준선과 견줄 숫자들. 실패 목록과 점수는 견주지 않는다.
+METRICS = ["recall1", "recallN", "mrr"]
+
+# 이만큼은 떨어져도 봐준다. GPU 계산이 같은 점수에서 순위를 뒤집을 때가 있다.
+TOLERANCE = 0.01
+
+
+def report_key(use_kind):
+    """기준선 파일에서 그 보고를 찾는 이름."""
+
+    if use_kind:
+        return "with_kind"
+    return "without_kind"
+
+
+def numbers_of(report):
+    """보고에서 기준선으로 남길 숫자만 꺼낸다."""
+
+    numbers = {}
+    for name in METRICS:
+        numbers[name] = round(report[name], 3)
+    return numbers
+
+
+def regressions(reports, baseline, tolerance=TOLERANCE):
+    """
+    기준선보다 떨어진 숫자를 글로 돌려준다. 비어 있으면 통과다.
+
+    오른 것은 문제 삼지 않는다. 오르면 --save 로 기준선을 올려 두면 된다.
+    """
+
+    found = []
+
+    for key, report in reports.items():
+        before = baseline[key]
+        for name in METRICS:
+            if report[name] < before[name] - tolerance:
+                found.append(f"{key} {name}  {before[name]:.3f} → {report[name]:.3f}")
+
+    return found
 
 
 def rank_of_answer(results, answers):
@@ -83,6 +130,7 @@ if __name__ == "__main__":
     print()
 
     kind_report = None
+    reports = {}
 
     for use_kind in [False, True]:
         if use_kind:
@@ -91,6 +139,7 @@ if __name__ == "__main__":
             title = "종류 필터 없음 — 그냥 물을 때"
 
         report = evaluate(questions, use_kind)
+        reports[report_key(use_kind)] = report
 
         print("=" * 62)
         print(title)
@@ -146,3 +195,34 @@ if __name__ == "__main__":
         )
     else:
         print("  두 점수대가 겹친다. 고정 임계값 하나로는 가를 수 없다.")
+
+    if "--save" in sys.argv:
+        baseline = {}
+        for key, report in reports.items():
+            baseline[key] = numbers_of(report)
+
+        BASELINE_PATH.write_text(
+            json.dumps(baseline, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+        )
+        print()
+        print(f"기준선을 남겼다 → {BASELINE_PATH}")
+
+    if "--check" in sys.argv:
+        print()
+        print("=" * 62)
+
+        # 기준선이 없으면 견줄 것이 없다. 통과로 치면 떨어져도 모르고 지나간다.
+        if not BASELINE_PATH.exists():
+            print(f"기준선이 없다. --save 로 먼저 남겨라 → {BASELINE_PATH}")
+            sys.exit(1)
+
+        baseline = json.loads(BASELINE_PATH.read_text(encoding="utf-8"))
+        dropped = regressions(reports, baseline)
+
+        if dropped:
+            print(f"기준선보다 떨어졌다 (봐주는 폭 {TOLERANCE})")
+            for one in dropped:
+                print("  " + one)
+            sys.exit(1)
+
+        print("기준선을 지켰다")
