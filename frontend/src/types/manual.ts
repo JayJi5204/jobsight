@@ -38,6 +38,34 @@ export interface ProcedureStep {
   boxes: ManualBox[]
 }
 
+/**
+ * 매뉴얼에 물어본 답. `POST /ai/ask` 가 돌려주는 모양이다.
+ *
+ * 절차·카드와 달리 이것만 모델을 거친다. 매번 조금씩 달라지고 틀릴 수도 있어서
+ * 근거 쪽을 함께 받는다 — 관제요원이 바로 원문을 펴 볼 수 있어야 한다.
+ */
+export interface AskSource {
+  page: number
+  chapter: string
+  section: string
+  /** 질문과 그 조각이 얼마나 가까운가. 1 에 가까울수록 가깝다 */
+  similarity: number
+}
+
+export interface AskAnswer {
+  answer: string
+  sources: AskSource[]
+}
+
+/** 주고받은 한 쌍. 질문을 보낸 순간 만들고, 답이 오면 채운다 */
+export interface AskTurn {
+  id: number
+  question: string
+  /** 아직 기다리는 중이면 null */
+  answer: AskAnswer | null
+  error: string | null
+}
+
 /** 유형별 대응 카드 하나. 매뉴얼 5장 */
 export interface ManualCard {
   id: string
