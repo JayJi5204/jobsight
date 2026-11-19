@@ -4,7 +4,7 @@ CREATE TABLE events(
     kind VARCHAR(20) NOT NULL,
     detected_at TIMESTAMPTZ NOT NULL,
     ended_at TIMESTAMPTZ,
-    status VARCHAR(10) NOT NULL DEFAULT 'OPEN',
+    status VARCHAR(20) NOT NULL DEFAULT 'OPEN',
     acked_at TIMESTAMPTZ,
     model VARCHAR(30),
     confidence REAL,
