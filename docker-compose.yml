@@ -76,13 +76,35 @@ services:
       PGUSER: ${PGVECTOR_USER}
       PGPASSWORD: ${PGVECTOR_PASSWORD}
       HF_HOME: /models
+      VLLM_URL: http://vllm:8000
     volumes:
       - ./manual:/app/manual:ro
       - ai-models:/models
     depends_on:
       - pgvector
 
+  vllm:
+    image: ghcr.io/nvidia-ai-iot/vllm:latest-jetson-thor
+    container_name: jobsight-vllm
+    restart: unless-stopped
+    runtime: nvidia
+    ipc: host
+    environment:
+      HF_HOME: /models
+    volumes:
+      - vllm-models:/models
+    command: >
+      vllm serve kakaocorp/kanana-1.5-8b-instruct-2505
+      --served-model-name kanana
+      --host 0.0.0.0
+      --port 8000
+      --max-model-len 8192
+      --max-num-seqs 8
+      --gpu-memory-utilization 0.30
+
+
 volumes:
   postgres-data:
   pgvector-data:
   ai-models:
+  vllm-models:
