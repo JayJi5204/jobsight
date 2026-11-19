@@ -70,11 +70,18 @@ public class EventServiceImpl implements EventService {
     @Override
     @Transactional
     public EventResponse review(Long id, EventReviewRequest request) {
+
+        EventEntity eventEntity = find(id);
         if (request.getStatus() != EventStatus.ACKED) {
             throw new BusinessException(ErrorCode.EVENT_REVIEW_UNSUPPORTED);
         }
-        EventEntity eventEntity = find(id);
-        eventEntity.ack(OffsetDateTime.now());
+        if (request.getStatus() == EventStatus.ACKED) {
+            eventEntity.ack(OffsetDateTime.now());
+        } else if (request.getStatus() == EventStatus.FALSE_POSITIVE) {
+            eventEntity.markFalsePositive(OffsetDateTime.now());
+        } else {
+            throw new BusinessException(ErrorCode.EVENT_REVIEW_UNSUPPORTED);
+        }
 
         log.debug("사건 확인 - id = {}", id);
 

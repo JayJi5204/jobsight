@@ -3,5 +3,7 @@ package com.jobsight.backend.domain.event.enumType;
 public enum EventStatus {
 
     OPEN,
-    ACKED
+    ACKED,
+    ENDED,
+    FALSE_POSITIVE
 }

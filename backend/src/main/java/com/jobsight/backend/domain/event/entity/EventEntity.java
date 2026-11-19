@@ -32,7 +32,7 @@ public class EventEntity {
     private OffsetDateTime endedAt;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 10)
+    @Column(nullable = false, length = 20)
     private EventStatus status;
 
     private OffsetDateTime ackedAt;
@@ -55,11 +55,17 @@ public class EventEntity {
 
     public void end(OffsetDateTime endedAt) {
         this.endedAt = endedAt;
+        this.status = EventStatus.ENDED;
     }
 
     public void ack(OffsetDateTime ackedAt) {
         this.status = EventStatus.ACKED;
         this.ackedAt = ackedAt;
+    }
+
+    public void markFalsePositive(OffsetDateTime endedAt) {
+        this.status = EventStatus.FALSE_POSITIVE;
+        this.endedAt = endedAt;
     }
 
 
