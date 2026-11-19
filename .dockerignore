@@ -1,0 +1,11 @@
+.git
+frontend/node_modules
+frontend/dist
+backend/build
+backend/.gradle
+ai/chunks
+ai/eval
+manual
+__pycache__
+*.pyc
+.env
