@@ -7,8 +7,6 @@ services:
       POSTGRES_DB: ${DB_NAME}
       POSTGRES_USER: ${DB_USERNAME}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
-    ports:
-      - "5432:5432"
     volumes:
       - postgres-data:/var/lib/postgresql
 
@@ -34,8 +32,6 @@ services:
       CAMERA_PASSWORD: ${CAMERA_PASSWORD}
       WEBRTC_HOST: ${WEBRTC_HOST}
     ports:
-      - "1984:1984"
-      - "8554:8554"
       - "8555:8555/tcp"
       - "8555:8555/udp"
     volumes:
@@ -91,6 +87,8 @@ services:
     ipc: host
     environment:
       HF_HOME: /models
+      HUGGINGFACE_HUB_CACHE: /models/hub
+      TRANSFORMERS_CACHE: /models/hub
     volumes:
       - vllm-models:/models
     command: >
@@ -101,6 +99,7 @@ services:
       --max-model-len 8192
       --max-num-seqs 8
       --gpu-memory-utilization 0.30
+      --enforce-eager
 
 
 volumes:
