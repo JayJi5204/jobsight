@@ -4,3 +4,4 @@ chunks/
 models/
 vectordb/
 .env
+.pytest_cache/
