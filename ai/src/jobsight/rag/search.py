@@ -75,8 +75,10 @@ def search(question, kind=None, top_k=TOP_K):
     vector_text = to_vector_text(vector)
 
     # 1 - 거리 = 유사도. 사람이 읽기 좋은 쪽으로 되돌린다.
+    # 네모도 함께 꺼낸다. 매뉴얼이 떼어 둔 칸이라 text 에 섞여 있지 않은데,
+    # "옮기지 마라" 처럼 꼭 지켜야 할 것이 거기 들어 있다.
     sql = """
-        SELECT id, kind, page, chapter, section, text,
+        SELECT id, kind, page, chapter, section, text, boxes,
                1 - (embedding <=> %s::vector)
         FROM chunks
     """
@@ -104,7 +106,8 @@ def search(question, kind=None, top_k=TOP_K):
                 "chapter": row[3],
                 "section": row[4],
                 "text": row[5],
-                "similarity": row[6],
+                "boxes": row[6] or [],
+                "similarity": row[7],
             }
         )
 
