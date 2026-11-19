@@ -17,6 +17,8 @@ RUN python -c "import torch; assert torch.version.cuda, 'torch가 CPU 휠로 바
 COPY ai/pyproject.toml ./
 COPY ai/src ./src
 
+ENV PYTHONPATH=/app/ai/src
+
 EXPOSE 8099
 
 CMD ["python", "-m","uvicorn","jobsight.api:app", \

@@ -45,6 +45,7 @@ pipeline{
                     cd "$DEPLOY_DIR"
                     git pull
                     docker compose up -d --build
+                    docker image prune -f
                 '''
             }
         }
