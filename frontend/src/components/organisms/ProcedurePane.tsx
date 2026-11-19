@@ -12,10 +12,8 @@ interface Props {
   /** 어느 카메라인가. `강남구 · CAM-001` 처럼 구역까지 붙은 한 줄 */
   where: string
   onClose: () => void
-  /** 원문을 띄워 달라는 신호. 쪽을 주면 열고 null 이면 닫는다 */
-  onManual: (page: number | null) => void
-  /** 지금 열려 있는 원문의 쪽. 닫혀 있으면 null */
-  openPage: number | null
+  /** 그 쪽 원문을 띄워 달라는 신호. 닫는 일은 원문 창이 맡는다 */
+  onManual: (page: number) => void
   className?: string
 }
 
@@ -97,7 +95,7 @@ function Note({ box }: { box: ManualBox }) {
  * 등급은 고르지 않는다 — 종류에서 나온다(constants/events.ts). 두 군데서 정하면
  * 어느 쪽이 맞는지 알 수 없다.
  */
-export function ProcedurePane({ event, where, onClose, onManual, openPage, className = '' }: Props) {
+export function ProcedurePane({ event, where, onClose, onManual, className = '' }: Props) {
   const { status, steps, cards, error } = useManual(event.kind)
 
   const [current, setCurrent] = useState(1)
@@ -323,14 +321,15 @@ export function ProcedurePane({ event, where, onClose, onManual, openPage, class
                     </>
                   )}
 
+                  {/* 여닫는 단추가 아니다. 원문을 여는 곳은 여럿이지만(단계마다, 질문의
+                      근거마다) 닫는 곳은 원문 창의 "영상으로" 하나다. 토글로 두면 질문
+                      근거로 6쪽을 연 순간 6쪽짜리 단계의 단추가 "닫기" 로 바뀐다 */}
                   <button
                     type="button"
-                    onClick={() => onManual(openPage === one.page ? null : one.page)}
-                    className={`mt-3 ml-3 cursor-pointer type-caption hover:underline ${
-                      openPage === one.page ? 'text-ink' : 'text-accent'
-                    }`}
+                    onClick={() => onManual(one.page)}
+                    className="mt-3 ml-3 cursor-pointer type-caption text-accent hover:underline"
                   >
-                    {openPage === one.page ? '원문 닫기' : `원문 ${one.page}쪽 보기`}
+                    원문 {one.page}쪽 보기
                   </button>
                 </div>
               )}

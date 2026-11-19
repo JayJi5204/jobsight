@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useLocation, useSearchParams } from 'react-router-dom'
+import { AskPane } from '@/components/organisms/AskPane'
 import { ProcedurePane } from '@/components/organisms/ProcedurePane'
 import { manualUrl } from '@/api/manual'
 import { useEvents } from '@/store/events'
@@ -103,7 +104,6 @@ export function LiveViewPage() {
           where={whereOf(picked.cameraId)}
           onClose={closeEvent}
           onManual={setManualPage}
-          openPage={manualPage}
           className="pane-procedure"
         />
         {rail}
@@ -203,7 +203,11 @@ export function LiveViewPage() {
                 영상으로
               </button>
             </div>
+            {/* key 에 쪽을 넣어 쪽이 바뀌면 틀을 새로 만든다.
+                주소에서 `#page=` 만 달라지면 브라우저는 같은 문서로 보고 움직이지 않는다 —
+                8쪽을 열어 둔 채 16쪽 근거를 눌러도 8쪽에 그대로 머문다 */}
             <iframe
+              key={manualPage}
               title="대응 매뉴얼 원문"
               src={manualUrl(picked.kind, manualPage)}
               className="min-h-0 flex-1 bg-white"
@@ -224,6 +228,17 @@ export function LiveViewPage() {
           />
         </div>
       </div>
+
+      {/* 매뉴얼에 묻는 자리. 대응 중에만 서고, 영상 아래 자리를 나눠 받는다.
+          절차 판을 갈아 끼우지 않는 것은 묻는 동안에도 지금 할 일이 보여야 하기 때문이다 */}
+      {picked && (
+        <AskPane
+          kind={picked.kind}
+          eventId={picked.id}
+          onManual={setManualPage}
+          className="ask-pane shrink-0"
+        />
+      )}
 
       {/* 쪽 넘기개는 영상 아래 가운데에 둔다. 영상 위에 얹으면 그만큼 화면을 가린다 */}
       {/* 넘기개만 있는 줄이라 가운데에 선다. 크게 보는 중에는 넘길 것이 없어 줄째 빠진다 */}

@@ -1,5 +1,5 @@
 import { ai } from '@/api/http'
-import type { ManualCard, ProcedureStep } from '@/types/manual'
+import type { AskAnswer, ManualCard, ProcedureStep } from '@/types/manual'
 import type { EventKind } from '@/types/event'
 
 /**
@@ -38,6 +38,19 @@ export const fetchProcedure = async (kind: EventKind, signal?: AbortSignal): Pro
 /** 유형별 대응 카드 일곱 장 */
 export const fetchCards = async (kind: EventKind, signal?: AbortSignal): Promise<ManualCard[]> =>
   filled((await ai.get<{ cards: ManualCard[] }>(`/cards/${pathOf(kind)}`, { signal })).data.cards)
+
+/**
+ * 매뉴얼에 물어본다. 이것만 모델을 거친다.
+ *
+ * 사건 종류를 함께 보낸다. 추락 사건을 보면서 던진 질문이 화재 매뉴얼에
+ * 가 닿으면 안 된다. 서버가 그 종류의 조각 안에서만 찾는다.
+ */
+export const askManual = async (
+  kind: EventKind,
+  question: string,
+  signal?: AbortSignal,
+): Promise<AskAnswer> =>
+  (await ai.post<AskAnswer>('/ask', { question, kind: pathOf(kind) }, { signal })).data
 
 /**
  * 매뉴얼 원문 주소. 쪽마다 그림으로 잘라 두지 않고 PDF 를 그대로 띄운다.
