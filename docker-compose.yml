@@ -56,6 +56,12 @@ services:
       DB_NAME: ${DB_NAME}
       DB_USERNAME: ${DB_USERNAME}
       DB_PASSWORD: ${DB_PASSWORD}
+      RECORDING_DIR: ${RECORDING_DIR}
+    volumes:
+      - ${RECORDING_DIR}:/recordings:ro
+      - /etc/hostname:/host/hostname:ro
+      - /etc/os-release:/host/os-release:ro
+      - /proc/device-tree/model:/host/board:ro
     depends_on:
       - postgres
 
