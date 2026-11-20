@@ -1,10 +1,9 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { Icon } from '@/components/atoms/Icon'
 import { Panel } from '@/components/atoms/Panel'
-import { fetchRecordingSegments } from '@/api/recordings'
 import { useClock } from '@/hooks/useClock'
+import { useTreeSegments, type SegmentLoad, type SegmentRequest } from '@/hooks/useTreeSegments'
 import { useZones, type SlotView } from '@/hooks/useZones'
-import type { RecordingSegment } from '@/types/recording'
 import { hoursOf, slotsOf } from '@/utils/recordingTree'
 import { DAY_MS, fmtHM, startOfDay } from '@/utils/time'
 
@@ -13,8 +12,6 @@ const DAYS = 10
 
 /** 한 단 들어갈 때마다 밀어 넣는 폭 */
 const INDENT_PX = 14
-
-type Load = { status: 'loading' } | { status: 'error' } | { status: 'ready'; segments: RecordingSegment[] }
 
 interface Props {
   /** 지금 보고 있는 카메라와 시각 — 그 자리까지 폴더를 펼쳐 둔다 */
@@ -86,24 +83,21 @@ export function RecordingTree({ cameraId, playhead, onPick, className = '' }: Pr
     }
     return new Set(keys)
   })
-  const [loads, setLoads] = useState<Record<string, Load>>({})
-  /** 이미 물어본 폴더. 같은 자리를 두 번 받지 않으려고 둔다 — 상태가 아니라 표시라서 ref 다 */
-  const asked = useRef<Set<string>>(new Set())
-  /**
-   * 판이 아직 붙어 있는가. 요청을 **끊지는 않고** 돌아온 값을 버릴지만 정한다.
-   *
-   * AbortController 로 끊으면 StrictMode 가 효과를 두 번 돌릴 때 자기 요청을 자기가 끊고,
-   * asked 에 이미 표시가 남아 다시 묻지 않아 「받는 중」에서 멈춘다. 받아 오는 것이
-   * 작은 GET 하나라 끊는 이득보다 이 함정이 크다.
-   */
-  const alive = useRef(true)
-
-  useEffect(() => {
-    alive.current = true
-    return () => {
-      alive.current = false
+  // 펼쳐진 카메라 폴더만 받는다 (키가 세 토막인 것이 카메라 단이다).
+  // 카메라 목록이 아직 안 왔으면 자리를 못 찾으니 빼 둔다 — 목록이 오면 다시 센다
+  const requests = useMemo(() => {
+    const out: SegmentRequest[] = []
+    for (const key of open) {
+      const parts = key.split('|')
+      if (parts.length !== 3) continue
+      const slot = rows.flatMap((r) => r.slots).find((s) => s.key === parts[2])
+      if (slot?.cameraId == null) continue
+      out.push({ key, cameraId: slot.cameraId, day: Number(parts[0].slice(1)) })
     }
-  }, [])
+    return out
+  }, [open, rows])
+
+  const loads = useTreeSegments(requests)
 
   const toggle = (key: string) =>
     setOpen((prev) => {
@@ -112,29 +106,6 @@ export function RecordingTree({ cameraId, playhead, onPick, className = '' }: Pr
       else next.add(key)
       return next
     })
-
-  // 펼쳐진 카메라 폴더의 구간만 받는다 (키가 세 토막인 것이 카메라 단이다)
-  useEffect(() => {
-    for (const key of open) {
-      if (key.split('|').length !== 3 || asked.current.has(key)) continue
-      const [d, , slotKey] = key.split('|')
-      const slot = rows.flatMap((r) => r.slots).find((s) => s.key === slotKey)
-      // 카메라 목록이 아직 안 왔으면 자리를 못 찾는다. 물어본 것으로 치지 않고 다음 바퀴에 다시 본다
-      if (slot?.cameraId == null) continue
-
-      asked.current.add(key)
-      const id = slot.cameraId
-      const day = Number(d.slice(1))
-      setLoads((prev) => ({ ...prev, [key]: { status: 'loading' } }))
-      fetchRecordingSegments(id, new Date(day))
-        .then((segments) => {
-          if (alive.current) setLoads((prev) => ({ ...prev, [key]: { status: 'ready', segments } }))
-        })
-        .catch(() => {
-          if (alive.current) setLoads((prev) => ({ ...prev, [key]: { status: 'error' } }))
-        })
-    }
-  }, [open, rows])
 
   return (
     <Panel title="녹화" className={className}>
@@ -206,7 +177,7 @@ function CameraFolder({
   day: number
   zoneId: number
   slot: SlotView
-  load: Load | undefined
+  load: SegmentLoad | undefined
   open: Set<string>
   toggle: (key: string) => void
   isHere: boolean
