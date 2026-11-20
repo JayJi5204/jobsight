@@ -24,6 +24,7 @@ spring:
 jobsight:
   recording:
     zone: Asia/Seoul
+    playback-url: http://mediamtx:9996
 
 logging:
   level:
