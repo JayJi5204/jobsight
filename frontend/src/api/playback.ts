@@ -7,11 +7,21 @@
  */
 const PLAYBACK_BASE = '/playback'
 
+/**
+ * 구간 머리를 짚었을 때 뒤로 미는 양.
+ *
+ * MediaMTX 는 구간 시작을 마이크로초까지 안다(`15:33:58.743553`). 그런데 `Date.parse`
+ * 는 밀리초까지만 읽어 `…743` 이 되고, 그 값은 **데이터가 시작되기 553µs 전**이다.
+ * 그대로 요청하면 「그 시각에는 녹화가 없다」며 404 가 온다(실측). 1ms 를 버리는
+ * 대신 머리를 짚어도 열리게 한다.
+ */
+const EPSILON_MS = 1
+
 /** 되돌려 볼 구간 하나. 기본은 fMP4 라 <video> 가 그대로 재생한다. format 'mp4' 는 내려받기용 */
 export function playbackUrl(streamKey: string, startMs: number, durationSec: number, format?: 'mp4'): string {
   const params = new URLSearchParams({
     path: streamKey,
-    start: new Date(startMs).toISOString(),
+    start: new Date(startMs + EPSILON_MS).toISOString(),
     duration: String(Math.max(1, Math.round(durationSec))),
   })
   if (format) params.set('format', format)
