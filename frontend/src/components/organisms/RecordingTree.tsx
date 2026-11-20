@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Icon } from '@/components/atoms/Icon'
 import { Panel } from '@/components/atoms/Panel'
 import { fetchRecordingSegments } from '@/api/recordings'
@@ -50,7 +50,18 @@ const dayLabel = (d: Date) =>
  * 생김새는 그대로라, 어느 단에 있는지가 들여쓰기만으로 읽힌다.
  */
 export function RecordingTree({ cameraId, playhead, onPick, className = '' }: Props) {
-  const rows = useZones()
+  // 실물이 붙은 자리만 세운다. 영상 벽은 빈 자리도 보여 줘야 한다 — 거기서는 「신호 없음」이
+  // 알아야 할 사실이다. 녹화는 반대다. 등록되지 않은 카메라에는 녹화가 있을 수 없으므로,
+  // 빈 폴더를 세우면 진짜 녹화를 찾는 길만 길어진다. 한 토막도 없는 시는 내놓지 않는
+  // hoursOf() 와 같은 규칙을 카메라 단에도 적용한 것이다
+  const zones = useZones()
+  const rows = useMemo(
+    () =>
+      zones
+        .map((row) => ({ ...row, slots: row.slots.filter((slot) => slot.cameraId !== null) }))
+        .filter((row) => row.slots.length > 0),
+    [zones],
+  )
   // 렌더에서 시계를 읽으면 같은 값으로 두 번 그려도 결과가 달라진다. 날이 바뀌는 것만
   // 알면 되므로 1분마다 본다
   const today = startOfDay(useClock(60_000)).getTime()
