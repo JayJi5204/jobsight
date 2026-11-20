@@ -16,6 +16,7 @@ import { useClock } from '@/hooks/useClock'
 import { useRecordingSegments } from '@/hooks/useRecordingSegments'
 import { useEvents } from '@/store/events'
 import type { RecordingSegment } from '@/types/recording'
+import { slotAt } from '@/utils/recordingTree'
 import { fmtDateTime, fmtTime, sameDay, startOfDay } from '@/utils/time'
 
 const HOUR_MS = 3_600_000
@@ -124,12 +125,19 @@ export function RecordingsPage() {
     else setPlaying(false)
   }
 
-  // 이 구간을 어디까지 봤나. 구간은 5분이라 분·초면 충분하다
-  const totalSec = openSegment ? Math.max(1, (spanOf(openSegment)[1] - srcStart) / 1000) : 0
-  const atSec = Math.max(0, Math.min(totalSec, (playhead - srcStart) / 1000))
-
   const hourStart = Math.floor(playhead / HOUR_MS) * HOUR_MS
-  const windowMs = openSegment ? spanOf(openSegment)[1] - Math.max(spanOf(openSegment)[0], srcStart) : 0
+  /**
+   * 지금 보고 있는 5분 칸. 왼쪽 폴더의 잎, 띠의 테두리, 재생 막대가 **모두 이것을** 가리킨다.
+   *
+   * 열어 둔 영상은 합쳐진 구간 끝까지라 몇십 분이다. 그것을 그대로 쓰면 이른 칸을
+   * 짚을수록 숫자가 42:59, 37:59 로 길어져 지금 어디인지 읽히지 않는다.
+   * 영상은 그대로 이어 재생하되(끊지 않는다), 눈금만 칸에 맞춘다.
+   */
+  const viewing = current ? slotAt(spanOf(current)[0], spanOf(current)[1], playhead) : null
+
+  // 이 칸을 어디까지 봤나. 칸이 5분이라 분·초면 충분하다
+  const totalSec = viewing ? (viewing.end - viewing.start) / 1000 : 0
+  const atSec = viewing ? Math.max(0, Math.min(totalSec, (playhead - viewing.start) / 1000)) : 0
 
   let screen
   if (rec.status === 'loading')
@@ -238,9 +246,9 @@ export function RecordingsPage() {
         <PlaybackBar
           atSec={scrubSec ?? atSec}
           totalSec={totalSec}
-          disabled={!openSegment}
+          disabled={!viewing}
           onScrub={setScrubSec}
-          onSeek={(sec) => seek(srcStart + sec * 1000)}
+          onSeek={(sec) => viewing && seek(viewing.start + sec * 1000)}
         />
 
         <div className="flex flex-wrap items-center gap-3">
@@ -284,8 +292,8 @@ export function RecordingsPage() {
           hourStart={hourStart}
           segments={segments}
           events={dayEvents}
-          windowStart={srcStart}
-          windowMs={windowMs}
+          viewingStart={viewing?.start ?? 0}
+          viewingMs={viewing ? viewing.end - viewing.start : 0}
           onSeek={seek}
         />
       </div>
