@@ -2,6 +2,9 @@ import type { RecordingSegment } from '@/types/recording'
 
 const HOUR_MS = 3_600_000
 
+/** 폴더에서 짚는 단위 */
+export const SLOT_MS = 5 * 60_000
+
 /** 한 시간 칸 안에 실제로 녹화가 남아 있는 토막. 끊긴 자리가 있으면 여럿이 된다 */
 export interface RecordedSpan {
   start: number
@@ -42,6 +45,28 @@ export function hoursOf(segments: RecordingSegment[], dayStart: number): HourNod
       }
     }
     if (inside.length > 0) out.push({ hour, spans: inside, ms })
+  }
+  return out
+}
+
+/**
+ * 이어진 토막을 5분 칸으로 끊는다.
+ *
+ * 녹화기는 끊길 이유가 없으면 몇 시간이고 이어 간다. 그 토막을 그대로 잎으로 세우면
+ * 한 시간에 잎이 하나뿐이라 15시 03분으로 갈 길이 없다 — 폴더가 짚는 자리가 아니라
+ * 읽는 줄이 되어 버린다.
+ *
+ * 벽시계 5분 경계(00·05·10…)에 맞춰 끊는다. 녹화가 시작된 시각부터 세면 잎 이름이
+ * 15:33, 15:38 처럼 나와서, 사람이 세는 시각과 어긋난다.
+ */
+export function slotsOf(spans: RecordedSpan[]): RecordedSpan[] {
+  const out: RecordedSpan[] = []
+  for (const span of spans) {
+    for (let from = Math.floor(span.start / SLOT_MS) * SLOT_MS; from < span.end; from += SLOT_MS) {
+      const start = Math.max(from, span.start)
+      const end = Math.min(from + SLOT_MS, span.end)
+      if (end > start) out.push({ start, end })
+    }
   }
   return out
 }

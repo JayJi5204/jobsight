@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { hoursOf } from './recordingTree'
+import { hoursOf, slotsOf } from './recordingTree'
 
 const DAY = Date.UTC(2026, 10, 19)
 const HOUR = 3_600_000
@@ -45,5 +45,44 @@ describe('hoursOf', () => {
     )
 
     expect(hours).toEqual([])
+  })
+})
+
+describe('slotsOf', () => {
+  const span = (fromMin: number, toMin: number) => ({ start: DAY + fromMin * 60_000, end: DAY + toMin * 60_000 })
+  const asMinutes = (slots: { start: number; end: number }[]) =>
+    slots.map((s) => [(s.start - DAY) / 60_000, (s.end - DAY) / 60_000])
+
+  it('이어진 토막을 5분 칸으로 끊는다', () => {
+    expect(asMinutes(slotsOf([span(0, 20)]))).toEqual([
+      [0, 5],
+      [5, 10],
+      [10, 15],
+      [15, 20],
+    ])
+  })
+
+  it('벽시계 5분 경계에 맞춘다 — 녹화가 시작된 시각부터 세지 않는다', () => {
+    expect(asMinutes(slotsOf([span(3, 13)]))).toEqual([
+      [3, 5],
+      [5, 10],
+      [10, 13],
+    ])
+  })
+
+  it('5분이 안 되는 토막도 한 칸으로 남긴다', () => {
+    expect(asMinutes(slotsOf([span(7, 8)]))).toEqual([[7, 8]])
+  })
+
+  it('토막이 여럿이면 각각 끊는다', () => {
+    expect(asMinutes(slotsOf([span(0, 7), span(20, 25)]))).toEqual([
+      [0, 5],
+      [5, 7],
+      [20, 25],
+    ])
+  })
+
+  it('빈 목록은 빈 목록이다', () => {
+    expect(slotsOf([])).toEqual([])
   })
 })
