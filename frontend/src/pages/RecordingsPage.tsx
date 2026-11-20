@@ -6,6 +6,7 @@ import { Icon } from '@/components/atoms/Icon'
 import { StatusDot } from '@/components/atoms/StatusDot'
 import { Segmented } from '@/components/atoms/Segmented'
 import { EmptyState } from '@/components/molecules/EmptyState'
+import { PlaybackBar } from '@/components/molecules/PlaybackBar'
 import { RecordingPlayer } from '@/components/molecules/RecordingPlayer'
 import { HourTimeline } from '@/components/organisms/HourTimeline'
 import { RecordingTree } from '@/components/organisms/RecordingTree'
@@ -62,6 +63,8 @@ export function RecordingsPage() {
   const [srcStart, setSrcStart] = useState(playhead)
   const [playing, setPlaying] = useState(false)
   const [rate, setRate] = useState<1 | 2 | 4>(1)
+  /** 재생 막대를 끄는 중인 자리(초). 손을 떼기 전까지는 영상을 갈지 않는다 */
+  const [scrubSec, setScrubSec] = useState<number | null>(null)
 
   const camera = cameras.find((c) => c.id === selectedId) ?? cameras[0]
   const dayStart = startOfDay(new Date(playhead)).getTime()
@@ -232,6 +235,14 @@ export function RecordingsPage() {
 
         <div className="sunk min-h-0 flex-1 overflow-hidden">{screen}</div>
 
+        <PlaybackBar
+          atSec={scrubSec ?? atSec}
+          totalSec={totalSec}
+          disabled={!openSegment}
+          onScrub={setScrubSec}
+          onSeek={(sec) => seek(srcStart + sec * 1000)}
+        />
+
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-1">
             <Button variant="quiet" icon aria-label="10초 뒤로" onClick={() => seek(Math.max(dayStart, playhead - 10_000))}>
@@ -252,7 +263,7 @@ export function RecordingsPage() {
             </Button>
             {/* 단추 바로 옆이다. 눈이 재생을 보고 있을 때 같은 자리에서 읽힌다 */}
             <span className="ml-2 type-body tabular-nums text-muted">
-              <span className="text-ink">{mmss(atSec)}</span> / {mmss(totalSec)}
+              <span className="text-ink">{mmss(scrubSec ?? atSec)}</span> / {mmss(totalSec)}
             </span>
           </div>
 

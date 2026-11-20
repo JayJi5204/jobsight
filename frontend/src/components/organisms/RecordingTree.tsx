@@ -5,7 +5,7 @@ import { fetchRecordingSegments } from '@/api/recordings'
 import { useClock } from '@/hooks/useClock'
 import { useZones, type SlotView } from '@/hooks/useZones'
 import type { RecordingSegment } from '@/types/recording'
-import { hoursOf } from '@/utils/recordingTree'
+import { hoursOf, slotsOf } from '@/utils/recordingTree'
 import { DAY_MS, fmtHM, startOfDay } from '@/utils/time'
 
 /** 트리에 세울 날 수. 더 옛날은 보관 기간 밖이라 열어도 비어 있다 */
@@ -259,8 +259,7 @@ function CameraFolder({
                 </FolderRow>
 
                 {hourOpen &&
-                  node.spans
-                    .slice()
+                  slotsOf(node.spans)
                     .reverse()
                     .map((span) => {
                       const playingHere = playhead >= span.start && playhead < span.end
