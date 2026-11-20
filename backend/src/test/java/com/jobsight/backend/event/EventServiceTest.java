@@ -84,21 +84,6 @@ public class EventServiceTest {
     }
 
     @Test
-    void 구간을_닫으면_끝난_시각이_남는다() {
-        Long id = 사건_하나();
-
-        EventEndRequest request = new EventEndRequest();
-        request.setEndedAt(now.minusMinutes(1));
-        service.end(id, request);
-
-        EventEntity saved = repository.findById(id).orElseThrow();
-
-        log.info("닫힘 - detectedAt = {} endedAt = {}", saved.getDetectedAt(), saved.getEndedAt());
-
-        assertThat(saved.getEndedAt()).isNotNull();
-    }
-
-    @Test
     void 모르는_카메라면_거절한다() {
         EventCreateRequest request = new EventCreateRequest();
         request.setStreamKey("CAM-999");
@@ -150,5 +135,38 @@ public class EventServiceTest {
         log.info("거부됨 = {} / {}", thrown.getErrorCode(), thrown.getMessage());
 
         assertThat(thrown.getErrorCode()).isEqualTo(ErrorCode.EVENT_NOT_FOUND);
+    }
+
+    @Test
+    void 구간을_닫으면_끝난_시각과_상태가_남는다() {
+        Long id = 사건_하나();
+
+        EventEndRequest request = new EventEndRequest();
+        request.setEndedAt(now.minusMinutes(1));
+        service.end(id, request);
+
+        EventEntity saved = repository.findById(id).orElseThrow();
+
+        log.info("닫힘 - status = {} endedAt = {}", saved.getStatus(), saved.getEndedAt());
+
+        assertThat(saved.getStatus()).isEqualTo(EventStatus.ENDED);
+        assertThat(saved.getEndedAt()).isNotNull();
+    }
+
+    @Test
+    void 오탐으로_처리하면_닫힌다() {
+        Long id = 사건_하나();
+
+        EventReviewRequest request = new EventReviewRequest();
+        request.setStatus(EventStatus.FALSE_POSITIVE);
+        service.review(id, request);
+
+        EventEntity saved = repository.findById(id).orElseThrow();
+
+        log.info("오탐 - status = {} endedAt = {} ackedAt = {}", saved.getStatus(), saved.getEndedAt(), saved.getAckedAt());
+
+        assertThat(saved.getStatus()).isEqualTo(EventStatus.FALSE_POSITIVE);
+        assertThat(saved.getEndedAt()).isNotNull();
+        assertThat(saved.getAckedAt()).isNull();
     }
 }

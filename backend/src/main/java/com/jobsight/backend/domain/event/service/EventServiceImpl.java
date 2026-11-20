@@ -72,9 +72,7 @@ public class EventServiceImpl implements EventService {
     public EventResponse review(Long id, EventReviewRequest request) {
 
         EventEntity eventEntity = find(id);
-        if (request.getStatus() != EventStatus.ACKED) {
-            throw new BusinessException(ErrorCode.EVENT_REVIEW_UNSUPPORTED);
-        }
+
         if (request.getStatus() == EventStatus.ACKED) {
             eventEntity.ack(OffsetDateTime.now());
         } else if (request.getStatus() == EventStatus.FALSE_POSITIVE) {
