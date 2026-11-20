@@ -50,6 +50,49 @@ export function hoursOf(segments: RecordingSegment[], dayStart: number): HourNod
 }
 
 /**
+ * 그 시각이 든 5분 칸. 왼쪽 폴더의 잎과 **같은 칸**이어야 둘이 같은 곳을 가리킨다.
+ *
+ * [slotsOf](#slotsOf) 와 같은 규칙으로 자른다 — 벽시계 5분 경계에서 끊고, 녹화가
+ * 있는 데까지만 남긴다. 그래서 15:33 에 시작한 녹화의 첫 칸은 15:33~15:35 다.
+ */
+export function slotAt(spanStart: number, spanEnd: number, at: number): RecordedSpan | null {
+  if (at < spanStart || at >= spanEnd) return null
+
+  const slotStart = Math.floor(at / SLOT_MS) * SLOT_MS
+  const start = Math.max(slotStart, spanStart)
+  const end = Math.min(slotStart + SLOT_MS, spanEnd)
+
+  return end > start ? { start, end } : null
+}
+
+/** 한 시간 띠 안에서 무엇인가가 차지하는 자리. 백분율이고, 띠 밖으로 나가지 않는다 */
+export interface Box {
+  leftPct: number
+  widthPct: number
+}
+
+/**
+ * 열어 둔 녹화가 이 시간 띠에서 덮는 자리.
+ *
+ * 합쳐진 구간은 몇 시간씩 이어지므로 길이를 그대로 그리면 띠 밖으로 삐져나간다.
+ * **양쪽을 띠에 맞춰 자른다** — 왼쪽만 자르고 길이를 그대로 두면, 이전 시에서
+ * 시작한 구간이 잘린 만큼 더 길어져 오른쪽으로 더 밀려난다.
+ *
+ * 너무 얇아 안 보이는 자리에는 최소 폭을 주되, 그만큼 왼쪽으로 밀어 띠 안에 둔다.
+ * 덮는 자리가 없으면 null — 그릴 것이 없다는 뜻이다.
+ */
+export function hourBox(hourStart: number, start: number, lengthMs: number, minPct = 0.8): Box | null {
+  const from = Math.max(start, hourStart)
+  const to = Math.min(start + lengthMs, hourStart + HOUR_MS)
+  if (to <= from) return null
+
+  const widthPct = Math.max(minPct, ((to - from) / HOUR_MS) * 100)
+  const leftPct = Math.max(0, Math.min(((from - hourStart) / HOUR_MS) * 100, 100 - widthPct))
+
+  return { leftPct, widthPct }
+}
+
+/**
  * 이어진 토막을 5분 칸으로 끊는다.
  *
  * 녹화기는 끊길 이유가 없으면 몇 시간이고 이어 간다. 그 토막을 그대로 잎으로 세우면

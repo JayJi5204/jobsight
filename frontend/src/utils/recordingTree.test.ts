@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { hoursOf, slotsOf } from './recordingTree'
+import { hourBox, hoursOf, slotAt, slotsOf } from './recordingTree'
 
 const DAY = Date.UTC(2026, 10, 19)
 const HOUR = 3_600_000
@@ -84,5 +84,72 @@ describe('slotsOf', () => {
 
   it('빈 목록은 빈 목록이다', () => {
     expect(slotsOf([])).toEqual([])
+  })
+})
+
+describe('slotAt', () => {
+  const span = (fromMin: number, toMin: number) => [DAY + fromMin * 60_000, DAY + toMin * 60_000] as const
+  const asMinutes = (slot: { start: number; end: number } | null) =>
+    slot && [(slot.start - DAY) / 60_000, (slot.end - DAY) / 60_000]
+
+  it('그 시각이 든 5분 칸을 준다', () => {
+    const [a, b] = span(0, 60)
+    expect(asMinutes(slotAt(a, b, DAY + 17 * 60_000))).toEqual([15, 20])
+  })
+
+  it('폴더 잎과 같은 칸이다 — 녹화 시작이 칸 가운데면 거기서 끊는다', () => {
+    // 15:33 에 시작한 녹화의 15:34 는 15:33~15:35 칸이다 (slotsOf 와 같아야 한다)
+    const [a, b] = span(33, 90)
+    expect(asMinutes(slotAt(a, b, DAY + 34 * 60_000))).toEqual([33, 35])
+  })
+
+  it('녹화 끝이 칸 가운데면 거기서 끊는다', () => {
+    const [a, b] = span(0, 13)
+    expect(asMinutes(slotAt(a, b, DAY + 11 * 60_000))).toEqual([10, 13])
+  })
+
+  it('구간 밖이면 없다', () => {
+    const [a, b] = span(10, 20)
+    expect(slotAt(a, b, DAY + 5 * 60_000)).toBeNull()
+    expect(slotAt(a, b, DAY + 25 * 60_000)).toBeNull()
+    expect(slotAt(a, b, b)).toBeNull()
+  })
+})
+
+describe('hourBox', () => {
+  /** 15시 */
+  const HOUR = DAY + 15 * 3_600_000
+  const min = (n: number) => n * 60_000
+  const round = (box: { leftPct: number; widthPct: number } | null) =>
+    box && { leftPct: Math.round(box.leftPct * 10) / 10, widthPct: Math.round(box.widthPct * 10) / 10 }
+
+  it('칸 안에 다 들어가는 구간은 그대로 그린다', () => {
+    expect(round(hourBox(HOUR, HOUR + min(15), min(15)))).toEqual({ leftPct: 25, widthPct: 25 })
+  })
+
+  it('다음 시로 넘어가는 구간은 칸 끝에서 자른다', () => {
+    // 15:35 부터 47분 — 16:22 까지지만 15시 칸은 25분만 남았다
+    expect(round(hourBox(HOUR, HOUR + min(35), min(47)))).toEqual({ leftPct: 58.3, widthPct: 41.7 })
+  })
+
+  it('앞 시에서 시작한 구간은 칸 머리에서 자른다', () => {
+    // 14:50 부터 30분 — 15시 칸에 걸치는 것은 앞의 20분뿐이다
+    expect(round(hourBox(HOUR, HOUR - min(10), min(30)))).toEqual({ leftPct: 0, widthPct: 33.3 })
+  })
+
+  it('칸을 통째로 덮어도 100% 를 넘지 않는다', () => {
+    expect(round(hourBox(HOUR, HOUR - min(30), min(180)))).toEqual({ leftPct: 0, widthPct: 100 })
+  })
+
+  it('너무 얇으면 최소 폭을 주되 칸 안에 둔다', () => {
+    const box = hourBox(HOUR, HOUR + min(60) - 100, 100)
+    expect(box).not.toBeNull()
+    expect(box!.widthPct).toBeCloseTo(0.8)
+    expect(box!.leftPct + box!.widthPct).toBeLessThanOrEqual(100)
+  })
+
+  it('이 시간에 걸치지 않으면 그릴 것이 없다', () => {
+    expect(hourBox(HOUR, HOUR + min(70), min(10))).toBeNull()
+    expect(hourBox(HOUR, HOUR - min(30), min(10))).toBeNull()
   })
 })

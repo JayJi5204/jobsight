@@ -1,6 +1,7 @@
 import { SEVERITY_LAMP, eventLabel, severityOf } from '@/constants/events'
 import type { DetectionEvent } from '@/types/event'
 import type { RecordingSegment } from '@/types/recording'
+import { hourBox } from '@/utils/recordingTree'
 import { fmtTime } from '@/utils/time'
 
 const HOUR_MS = 3_600_000
@@ -11,9 +12,14 @@ interface Props {
   hourStart: number
   segments: RecordingSegment[]
   events: DetectionEvent[]
-  /** 지금 열어 둔 구간 */
-  windowStart: number
-  windowMs: number
+  /**
+   * 지금 보고 있는 5분 칸. 왼쪽 폴더에서 굵게 선 잎과 **같은 칸**이다.
+   *
+   * 열어 둔 영상 전체가 아니다 — 그것은 합쳐진 구간 끝까지라 몇십 분이고,
+   * 이른 칸을 짚을수록 테두리가 길어져 어디를 보고 있는지 되레 안 보인다.
+   */
+  viewingStart: number
+  viewingMs: number
   onSeek: (ms: number) => void
 }
 
@@ -29,7 +35,7 @@ const pct = (ms: number) => `${(ms / HOUR_MS) * 100}%`
  * 짚은 자리가 몇 분인지 보이지 않은 채 영상만 갈아끼워졌다. 시각을 옮기는 길은
  * 왼쪽 폴더(5분 구간)와 ±10초이고, 이 띄에서 누를 수 있는 것은 사건 표식뿐이다.
  */
-export function HourTimeline({ hourStart, segments, events, windowStart, windowMs, onSeek }: Props) {
+export function HourTimeline({ hourStart, segments, events, viewingStart, viewingMs, onSeek }: Props) {
   const hourEnd = hourStart + HOUR_MS
   const hour = new Date(hourStart).getHours()
 
@@ -37,6 +43,8 @@ export function HourTimeline({ hourStart, segments, events, windowStart, windowM
     .map((s) => [Date.parse(s.start), Date.parse(s.end)] as const)
     .filter(([a, b]) => b > hourStart && a < hourEnd)
     .map(([a, b]) => ({ from: Math.max(a, hourStart) - hourStart, to: Math.min(b, hourEnd) - hourStart }))
+
+  const viewing = hourBox(hourStart, viewingStart, viewingMs)
 
   const marks = events.filter((e) => {
     const t = Date.parse(e.detectedAt)
@@ -73,15 +81,14 @@ export function HourTimeline({ hourStart, segments, events, windowStart, windowM
           )
         })}
 
-        {/* 지금 보고 있는 녹화 구간 */}
-        <span
-          aria-hidden
-          className="pointer-events-none absolute -top-0.5 -bottom-0.5 rounded-[2px] border border-ink"
-          style={{
-            left: pct(Math.max(0, windowStart - hourStart)),
-            width: `max(0.8%, ${(windowMs / HOUR_MS) * 100}%)`,
-          }}
-        />
+        {/* 지금 보고 있는 녹화 구간. 이 시간에 걸치는 만큼만 그린다 */}
+        {viewing && (
+          <span
+            aria-hidden
+            className="pointer-events-none absolute -top-0.5 -bottom-0.5 rounded-[2px] border border-ink"
+            style={{ left: `${viewing.leftPct}%`, width: `${viewing.widthPct}%` }}
+          />
+        )}
       </div>
 
       <div className="flex justify-between type-caption text-muted tabular-nums">
