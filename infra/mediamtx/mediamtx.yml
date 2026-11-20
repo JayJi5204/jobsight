@@ -1,0 +1,27 @@
+logLevel: info
+
+api: yes
+apiAddress: :9997
+
+rtsp: no
+rtmp: no
+hls: no
+webrtc: no
+srt: no
+
+playback: yes
+playbackAddress: :9996
+
+pathDefaults:
+  record: yes
+  recordPath: /recordings/%path/%Y-%m-%d_%H-%M-%S-%f_%z
+  recordFormat: fmp4
+  recordPartDuration: 1s
+  recordSegmentDuration: 10m
+  recordDeleteAfter: 7d
+
+paths:
+  CAM-001:
+    source: rtsp://go2rtc:8554/CAM-001
+    sourceOnDemand: no
+    rtspTransport: tcp

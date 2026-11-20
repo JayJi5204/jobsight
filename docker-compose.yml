@@ -48,6 +48,16 @@ services:
     volumes:
       - ./infra/go2rtc:/config:ro
 
+  mediamtx:
+    image: bluenviron/mediamtx:1.21.4
+    container_name: jobsight-mediamtx
+    restart: unless-stopped
+    volumes:
+      - ./infra/mediamtx/mediamtx.yml:/mediamtx.yml:ro
+      - ${RECORDING_DIR}:/recordings
+    depends_on:
+      - go2rtc
+      
   backend:
     build: ./backend
     container_name: jobsight-backend
