@@ -16,11 +16,22 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${PGVECTOR_NAME}
-      POSTGRES_USER: ${PGVECTOR_USER}
+      POSTGRES_USER: ${PGVECTOR_USERNAME}
       POSTGRES_PASSWORD: ${PGVECTOR_PASSWORD}
     volumes:
       - pgvector-data:/var/lib/postgresql
       - ./ai/sql:/docker-entrypoint-initdb.d:ro
+
+  recording:
+    image: postgres:18-alpine
+    container_name: jobsight-recording
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${RECORDING_NAME}
+      POSTGRES_USER: ${RECORDING_USERNAME}
+      POSTGRES_PASSWORD: ${RECORDING_PASSWORD}
+    volumes:
+      - recording-data:/var/lib/postgresql
 
   go2rtc:
     image: alexxit/go2rtc
@@ -28,7 +39,7 @@ services:
     restart: unless-stopped
     environment:
       CAMERA_HOST: ${CAMERA_HOST}
-      CAMERA_USER: ${CAMERA_USER}
+      CAMERA_USER: ${CAMERA_USERNAME}
       CAMERA_PASSWORD: ${CAMERA_PASSWORD}
       WEBRTC_HOST: ${WEBRTC_HOST}
     ports:
@@ -46,8 +57,10 @@ services:
       DB_NAME: ${DB_NAME}
       DB_USERNAME: ${DB_USERNAME}
       DB_PASSWORD: ${DB_PASSWORD}
+      RECORDING_HOST: recording
     depends_on:
       - postgres
+      - recording
 
   frontend:
     build: ./frontend
@@ -69,7 +82,7 @@ services:
       PGHOST: pgvector
       PGPORT: 5432
       PGDATABASE: ${PGVECTOR_NAME}
-      PGUSER: ${PGVECTOR_USER}
+      PGUSER: ${PGVECTOR_USERNAME}
       PGPASSWORD: ${PGVECTOR_PASSWORD}
       HF_HOME: /models
       VLLM_URL: http://vllm:8000
@@ -105,5 +118,6 @@ services:
 volumes:
   postgres-data:
   pgvector-data:
+  recording-data:
   ai-models:
   vllm-models:

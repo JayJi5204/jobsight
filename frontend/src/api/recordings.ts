@@ -12,16 +12,16 @@ export class CameraNotFoundError extends Error {}
  * 백엔드는 두 경우 모두 404 로 답한다 — 경로가 없을 때와 카메라를 모를 때.
  * 상태 코드만으로는 가를 수 없어 본문의 표시를 함께 본다.
  *
- * 지금은 RFC 7807 ProblemDetail 의 detail 에 들어 있고("camera-not-found: 9999"),
- * 나중에 code 로 옮겨간다고 한다. 둘 다 보고, 모양이 다르면 통째로 훑는다.
+ * 백엔드는 RFC 7807 ProblemDetail 의 `code` 에 ErrorCode 이름을 그대로 넣는다
+ * (`CAMERA_NOT_FOUND`). 대소문자와 구분자가 다를 수 있어 둘 다 받아들인다.
  */
-const CAMERA_NOT_FOUND = 'camera-not-found'
+const CAMERA_NOT_FOUND = /camera[-_]not[-_]found/i
 
 function isCameraNotFound(data: unknown): boolean {
-  if (typeof data === 'string') return data.includes(CAMERA_NOT_FOUND)
+  if (typeof data === 'string') return CAMERA_NOT_FOUND.test(data)
   if (typeof data !== 'object' || data === null) return false
   const { detail, code } = data as { detail?: unknown; code?: unknown }
-  return [detail, code].some((v) => typeof v === 'string' && v.includes(CAMERA_NOT_FOUND))
+  return [detail, code].some((v) => typeof v === 'string' && CAMERA_NOT_FOUND.test(v))
 }
 
 /**
