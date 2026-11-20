@@ -41,7 +41,10 @@ pipeline{
 
                 stage('인프라 검사'){
                     steps{
-                        sh 'docker compose -f "$WORKSPACE/docker-compose.yml" config -q'
+                        sh '''
+                            docker compose --env-file "$WORKSPACE/.env.example" -f \
+                            "$WORKSPACE/docker-compose.yml" config -q
+                        '''
                     }
                 }
             }
