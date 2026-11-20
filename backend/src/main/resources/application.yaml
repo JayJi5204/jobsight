@@ -23,14 +23,7 @@ spring:
 
 jobsight:
   recording:
-    datasource:
-      url: jdbc:postgresql://${RECORDING_HOST:localhost}:5432/${RECORDING_NAME}
-      username: ${RECORDING_USERNAME}
-      password: ${RECORDING_PASSWORD}
-    root: ${RECORDING_DIR}
     zone: Asia/Seoul
-    retention: 7d
-    min-free-ratio: 0.15
 
 logging:
   level:
